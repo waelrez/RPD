@@ -15,6 +15,132 @@ let currentUser = null;
 let currentPage = "dashboard";
 
 /* =========================
+   توافق قاعدة البيانات والإصلاحات
+========================= */
+
+function getUserRank(user) {
+    return Number(user?.rankLevel ?? user?.rank ?? 0);
+}
+
+function normalizeUser(user) {
+    if (!user || typeof user !== "object") return user;
+
+    const rank = getUserRank(user);
+
+    return {
+        ...user,
+        rank,
+        rankLevel: rank
+    };
+}
+
+function normalizeDatabase(database) {
+    const db = database && typeof database === "object"
+        ? database
+        : {};
+
+    const collections = [
+        "users",
+        "citizens",
+        "officers",
+        "vehicles",
+        "reports",
+        "calls",
+        "wanted",
+        "warrants",
+        "tickets",
+        "records",
+        "operations",
+        "notifications",
+        "activities"
+    ];
+
+    collections.forEach(key => {
+        if (!Array.isArray(db[key])) {
+            db[key] = [];
+        }
+    });
+
+    if (!db.settings || typeof db.settings !== "object") {
+        db.settings = {
+            notifications: true
+        };
+    }
+
+    if (
+        typeof db.settings.notifications !==
+        "boolean"
+    ) {
+        db.settings.notifications = true;
+    }
+
+    db.users = db.users.map(normalizeUser);
+    db.officers = db.officers.map(normalizeUser);
+
+    return db;
+}
+
+function getAppDatabase() {
+    const db = normalizeDatabase(
+        loadDatabase()
+    );
+
+    if (typeof RPD_DB !== "undefined") {
+        RPD_DB = db;
+    }
+
+    return db;
+}
+
+function makeId(prefix) {
+    const map = {
+        CIT: "citizens",
+        VEH: "vehicles",
+        RPT: "reports",
+        CALL: "calls",
+        WNT: "wanted",
+        WAR: "warrants",
+        TIC: "tickets",
+        REC: "records",
+        OP: "operations",
+        NOT: "notifications",
+        ACT: "activities",
+        USR: "users",
+        RPD: "users"
+    };
+
+    const db = getAppDatabase();
+
+    const collection =
+        db[map[prefix]] || [];
+
+    if (typeof generateId === "function") {
+        return generateId(
+            prefix,
+            collection
+        );
+    }
+
+    const number =
+        collection.length + 1;
+
+    return (
+        `${prefix}-` +
+        String(number).padStart(4, "0")
+    );
+}
+
+function databaseReady() {
+    return (
+        typeof loadDatabase === "function" &&
+        typeof saveDatabase === "function" &&
+        typeof findUser === "function" &&
+        typeof getRankName === "function" &&
+        typeof getRankByLevel === "function"
+    );
+}
+
+/* =========================
    أدوات عامة
 ========================= */
 
@@ -23,7 +149,13 @@ function $(id) {
 }
 
 function escapeHTML(value) {
-    if (value === null || value === undefined) return "";
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return "";
+    }
+
     return String(value)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -33,24 +165,35 @@ function escapeHTML(value) {
 }
 
 function now() {
-    return new Date().toLocaleString("ar-MA", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit"
-    });
+    return new Date().toLocaleString(
+        "ar-MA",
+        {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+        }
+    );
 }
 
 function today() {
-    return new Date().toLocaleDateString("ar-MA");
+    return new Date().toLocaleDateString(
+        "ar-MA"
+    );
 }
 
-function showMessage(message, type = "success") {
+function showMessage(
+    message,
+    type = "success"
+) {
     let box = $("rpd-message");
 
     if (!box) {
-        box = document.createElement("div");
+        box = document.createElement(
+            "div"
+        );
+
         box.id = "rpd-message";
 
         box.style.position = "fixed";
@@ -61,8 +204,10 @@ function showMessage(message, type = "success") {
         box.style.borderRadius = "12px";
         box.style.color = "#fff";
         box.style.fontWeight = "700";
-        box.style.boxShadow = "0 10px 30px rgba(0,0,0,.4)";
-        box.style.transition = "opacity .3s";
+        box.style.boxShadow =
+            "0 10px 30px rgba(0,0,0,.4)";
+        box.style.transition =
+            "opacity .3s";
 
         document.body.appendChild(box);
     }
@@ -77,11 +222,14 @@ function showMessage(message, type = "success") {
     box.textContent = message;
     box.style.opacity = "1";
 
-    clearTimeout(window.rpdMessageTimer);
+    clearTimeout(
+        window.rpdMessageTimer
+    );
 
-    window.rpdMessageTimer = setTimeout(() => {
-        box.style.opacity = "0";
-    }, 3000);
+    window.rpdMessageTimer =
+        setTimeout(() => {
+            box.style.opacity = "0";
+        }, 3000);
 }
 
 /* =========================
@@ -91,17 +239,24 @@ function showMessage(message, type = "success") {
 function saveSession(user) {
     sessionStorage.setItem(
         "RESPECT_CFW_RPD_SESSION",
-        JSON.stringify(user)
+        JSON.stringify(
+            normalizeUser(user)
+        )
     );
 }
 
 function getSession() {
     try {
-        const data = sessionStorage.getItem(
-            "RESPECT_CFW_RPD_SESSION"
-        );
+        const data =
+            sessionStorage.getItem(
+                "RESPECT_CFW_RPD_SESSION"
+            );
 
-        return data ? JSON.parse(data) : null;
+        return data
+            ? normalizeUser(
+                  JSON.parse(data)
+              )
+            : null;
     } catch {
         return null;
     }
@@ -118,31 +273,72 @@ function clearSession() {
 ========================= */
 
 function login() {
-    const username = $("username")?.value.trim();
-    const password = $("password")?.value;
+    if (!databaseReady()) {
+        console.error(
+            "database.js لم يتم تحميله قبل app.js"
+        );
+
+        showMessage(
+            "خطأ: database.js غير محمل. تأكد من ترتيب الملفات في index.html",
+            "danger"
+        );
+
+        return;
+    }
+
+    const username =
+        $("username")?.value.trim();
+
+    const password =
+        $("password")?.value;
 
     if (!username || !password) {
-        showMessage("يرجى إدخال اسم المستخدم وكلمة المرور", "warning");
+        showMessage(
+            "يرجى إدخال اسم المستخدم وكلمة المرور",
+            "warning"
+        );
+
         return;
     }
 
-    const user = findUser(username, password);
+    const user =
+        findUser(
+            username,
+            password
+        );
 
     if (!user) {
-        showMessage("بيانات الدخول غير صحيحة", "danger");
+        showMessage(
+            "بيانات الدخول غير صحيحة",
+            "danger"
+        );
+
         return;
     }
 
-    currentUser = user;
-    saveSession(user);
+    currentUser =
+        normalizeUser(user);
 
-    const loginScreen = $("login-screen");
-    const app = $("app");
+    saveSession(currentUser);
 
-    if (loginScreen) loginScreen.style.display = "none";
-    if (app) app.style.display = "flex";
+    const loginScreen =
+        $("login-screen");
+
+    const app =
+        $("app");
+
+    if (loginScreen) {
+        loginScreen.style.display =
+            "none";
+    }
+
+    if (app) {
+        app.style.display =
+            "flex";
+    }
 
     updateCurrentUser();
+
     addActivity(
         "تسجيل دخول",
         `${user.name} قام بتسجيل الدخول إلى النظام`
@@ -151,7 +347,9 @@ function login() {
     renderAll();
 
     showMessage(
-        `مرحباً ${user.name} — ${getRankName(user.rank)}`
+        `مرحباً ${user.name} — ${getRankName(
+            getUserRank(user)
+        )}`
     );
 }
 
@@ -176,6 +374,7 @@ function logout() {
     }
 
     clearSession();
+
     currentUser = null;
 
     location.reload();
@@ -188,7 +387,12 @@ function logout() {
 function updateCurrentUser() {
     if (!currentUser) return;
 
-    const rankName = getRankName(currentUser.rank);
+    const rankName =
+        getRankName(
+            getUserRank(
+                currentUser
+            )
+        );
 
     const elements = [
         "current-user",
@@ -198,7 +402,11 @@ function updateCurrentUser() {
 
     elements.forEach(id => {
         const el = $(id);
-        if (el) el.textContent = currentUser.name;
+
+        if (el) {
+            el.textContent =
+                currentUser.name;
+        }
     });
 
     const rankElements = [
@@ -209,20 +417,28 @@ function updateCurrentUser() {
 
     rankElements.forEach(id => {
         const el = $(id);
-        if (el) el.textContent = rankName;
+
+        if (el) {
+            el.textContent =
+                rankName;
+        }
     });
 
-    const badge = $("user-badge");
+    const badge =
+        $("user-badge");
 
     if (badge) {
         badge.textContent =
-            currentUser.badge || "RPD-0000";
+            currentUser.badge ||
+            "RPD-0000";
     }
 
-    const date = $("current-date");
+    const date =
+        $("current-date");
 
     if (date) {
-        date.textContent = today();
+        date.textContent =
+            today();
     }
 }
 
@@ -250,12 +466,18 @@ const PAGE_PERMISSIONS = {
 };
 
 function hasPermission(page) {
-    if (!currentUser) return false;
+    if (!currentUser) {
+        return false;
+    }
 
     const required =
         PAGE_PERMISSIONS[page] ?? 0;
 
-    return Number(currentUser.rank) >= required;
+    return (
+        getUserRank(
+            currentUser
+        ) >= required
+    );
 }
 
 function openPage(page) {
@@ -266,37 +488,60 @@ function openPage(page) {
             "ليست لديك الصلاحية للوصول إلى هذه الصفحة",
             "danger"
         );
+
         return;
     }
 
     currentPage = page;
 
-    document.querySelectorAll(".page").forEach(p => {
-        p.style.display = "none";
-        p.classList.remove("active");
-    });
+    document
+        .querySelectorAll(".page")
+        .forEach(p => {
+            p.style.display = "none";
+            p.classList.remove(
+                "active"
+            );
+        });
 
-    const target = $(`page-${page}`);
+    const target =
+        $(`page-${page}`);
 
     if (target) {
-        target.style.display = "block";
-        target.classList.add("active");
+        target.style.display =
+            "block";
+
+        target.classList.add(
+            "active"
+        );
     }
 
-    document.querySelectorAll(
-        ".sidebar button, .nav-btn"
-    ).forEach(btn => {
-        btn.classList.remove("active");
+    document
+        .querySelectorAll(
+            ".sidebar button, .nav-btn"
+        )
+        .forEach(btn => {
+            btn.classList.remove(
+                "active"
+            );
 
-        const onclick = btn.getAttribute("onclick") || "";
+            const onclick =
+                btn.getAttribute(
+                    "onclick"
+                ) || "";
 
-        if (
-            onclick.includes(`openPage('${page}')`) ||
-            onclick.includes(`openPage("${page}")`)
-        ) {
-            btn.classList.add("active");
-        }
-    });
+            if (
+                onclick.includes(
+                    `openPage('${page}')`
+                ) ||
+                onclick.includes(
+                    `openPage("${page}")`
+                )
+            ) {
+                btn.classList.add(
+                    "active"
+                );
+            }
+        });
 
     renderPage(page);
 }
@@ -370,73 +615,65 @@ function renderPage(page) {
 }
 
 /* =========================
-   لوحة القيادة
+   لوحة التحكم
 ========================= */
 
 function renderDashboard() {
-    const db = loadDatabase();
-
-    setText(
-        "stat-officers",
-        db.officers?.length || 0
-    );
+    const db =
+        getAppDatabase();
 
     setText(
         "stat-citizens",
-        db.citizens?.length || 0
+        db.citizens.length
+    );
+
+    setText(
+        "stat-officers",
+        db.officers.length
     );
 
     setText(
         "stat-vehicles",
-        db.vehicles?.length || 0
+        db.vehicles.length
+    );
+
+    setText(
+        "stat-reports",
+        db.reports.length
     );
 
     setText(
         "stat-calls",
-        db.calls?.filter(
-            c => c.status !== "مغلق"
-        ).length || 0
+        db.calls.length
     );
 
     setText(
-        "online-officers",
-        db.officers?.filter(
-            o =>
-                o.status === "متصل" ||
-                o.status === "في الخدمة"
-        ).length || 0
+        "stat-wanted",
+        db.wanted.length
     );
 
-    renderActivity();
+    setText(
+        "stat-warrants",
+        db.warrants.length
+    );
+
+    setText(
+        "stat-tickets",
+        db.tickets.length
+    );
+
+    setText(
+        "stat-records",
+        db.records.length
+    );
+
+    setText(
+        "stat-operations",
+        db.operations.length
+    );
+
+    renderActivities();
     renderSystemStatus();
-}
-
-function renderActivity() {
-    const db = loadDatabase();
-    const container =
-        $("activity-list");
-
-    if (!container) return;
-
-    const activities =
-        (db.activities || [])
-            .slice()
-            .reverse()
-            .slice(0, 10);
-
-    if (!activities.length) {
-        container.innerHTML =
-            `<div class="empty">لا توجد أنشطة حالياً</div>`;
-        return;
-    }
-
-    container.innerHTML = activities.map(a => `
-        <div class="activity-item">
-            <strong>${escapeHTML(a.title)}</strong>
-            <span>${escapeHTML(a.description)}</span>
-            <small>${escapeHTML(a.date || "")}</small>
-        </div>
-    `).join("");
 }
 
 function renderSystemStatus() {
@@ -452,11 +689,73 @@ function renderSystemStatus() {
 }
 
 /* =========================
-   المواطنين
+   النشاطات
+========================= */
+
+function renderActivities() {
+    const db =
+        getAppDatabase();
+
+    const container =
+        $("activity-list") ||
+        $("activities-list") ||
+        $("dashboard-activities");
+
+    if (!container) return;
+
+    const activities =
+        db.activities || [];
+
+    if (!activities.length) {
+        container.innerHTML =
+            `<div class="empty">لا توجد نشاطات</div>`;
+
+        return;
+    }
+
+    container.innerHTML =
+        activities
+            .slice()
+            .reverse()
+            .slice(0, 20)
+            .map(a => `
+                <div class="activity-item">
+                    <div>
+                        <strong>
+                            ${escapeHTML(
+                                a.title ||
+                                a.text ||
+                                "نشاط"
+                            )}
+                        </strong>
+
+                        <p>
+                            ${escapeHTML(
+                                a.description ||
+                                ""
+                            )}
+                        </p>
+                    </div>
+
+                    <small>
+                        ${escapeHTML(
+                            a.date ||
+                            a.time ||
+                            "-"
+                        )}
+                    </small>
+                </div>
+            `)
+            .join("");
+}
+
+/* =========================
+   المواطنون
 ========================= */
 
 function renderCitizens(list = null) {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
     const citizens =
         list || db.citizens || [];
@@ -474,33 +773,71 @@ function renderCitizens(list = null) {
                 </td>
             </tr>
         `;
+
         return;
     }
 
-    tbody.innerHTML = citizens.map(c => `
-        <tr>
-            <td>${escapeHTML(c.id)}</td>
-            <td>${escapeHTML(c.name)}</td>
-            <td>${escapeHTML(c.age || "-")}</td>
-            <td>${escapeHTML(c.gender || "-")}</td>
-            <td>${escapeHTML(c.phone || "-")}</td>
-            <td>${escapeHTML(c.city || "-")}</td>
-            <td>
-                <span class="badge ${
-                    c.status === "مطلوب"
-                        ? "danger"
-                        : "success"
-                }">
-                    ${escapeHTML(c.status || "عادي")}
-                </span>
-            </td>
-            <td>
-                <button onclick="viewCitizen('${escapeHTML(c.id)}')">
-                    عرض
-                </button>
-            </td>
-        </tr>
-    `).join("");
+    tbody.innerHTML =
+        citizens.map(c => `
+            <tr>
+                <td>
+                    ${escapeHTML(c.id)}
+                </td>
+
+                <td>
+                    ${escapeHTML(c.name)}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        c.age || "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        c.gender || "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        c.phone || "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        c.city ||
+                        c.address ||
+                        "-"
+                    )}
+                </td>
+
+                <td>
+                    <span class="badge ${
+                        c.status === "مطلوب"
+                            ? "danger"
+                            : "success"
+                    }">
+                        ${escapeHTML(
+                            c.status ||
+                            "عادي"
+                        )}
+                    </span>
+                </td>
+
+                <td>
+                    <button
+                        onclick="viewCitizen('${escapeHTML(
+                            c.id
+                        )}')"
+                    >
+                        عرض
+                    </button>
+                </td>
+            </tr>
+        `).join("");
 }
 
 function searchCitizens() {
@@ -510,106 +847,141 @@ function searchCitizens() {
     if (!input) return;
 
     const query =
-        input.value.trim().toLowerCase();
+        input.value
+            .trim()
+            .toLowerCase();
 
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
     const result =
-        (db.citizens || []).filter(c =>
-            [
-                c.id,
-                c.name,
-                c.phone,
-                c.city,
-                c.nationalId
-            ]
-                .join(" ")
-                .toLowerCase()
-                .includes(query)
-        );
+        (db.citizens || [])
+            .filter(c =>
+                [
+                    c.id,
+                    c.name,
+                    c.phone,
+                    c.city,
+                    c.address,
+                    c.nationalId
+                ]
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(query)
+            );
 
     renderCitizens(result);
 }
 
 function openCitizenModal() {
-    const modal = $("citizen-modal");
+    const modal =
+        $("citizen-modal");
 
     if (modal) {
-        modal.style.display = "flex";
+        modal.style.display =
+            "flex";
     }
 }
 
 function addCitizen() {
-    if (!hasPermission("citizens")) return;
+    if (
+        !hasPermission(
+            "citizens"
+        )
+    ) {
+        return;
+    }
 
     const name =
-        $("citizen-name")?.value.trim();
+        $("citizen-name")
+            ?.value
+            .trim();
 
     const nationalId =
-        $("citizen-national-id")?.value.trim();
+        $("citizen-national-id")
+            ?.value
+            .trim();
 
     const age =
-        $("citizen-age")?.value;
+        $("citizen-age")
+            ?.value;
 
     const gender =
-        $("citizen-gender")?.value;
+        $("citizen-gender")
+            ?.value;
 
     const phone =
-        $("citizen-phone")?.value.trim();
+        $("citizen-phone")
+            ?.value
+            .trim();
 
     const city =
-        $("citizen-city")?.value.trim();
+        $("citizen-city")
+            ?.value
+            .trim();
 
     if (!name) {
         showMessage(
             "اسم المواطن مطلوب",
             "warning"
         );
+
         return;
     }
 
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
     const citizen = {
-        id: generateId("CIT"),
+        id: makeId("CIT"),
         name,
         nationalId,
         age,
         gender,
         phone,
         city,
+        address: city,
         status: "عادي",
         createdAt: now(),
-        createdBy: currentUser.name
+        createdBy:
+            currentUser.name
     };
 
-    db.citizens.push(citizen);
+    db.citizens.push(
+        citizen
+    );
 
     saveDatabase(db);
 
     addActivity(
-        "إضافة مواطن",
-        `تمت إضافة المواطن ${name}`
+        "مواطن جديد",
+        `تم تسجيل المواطن ${name}`
     );
 
-    closeModal("citizen-modal");
+    closeModal(
+        "citizen-modal"
+    );
 
-    clearForm("citizen-modal");
+    clearForm(
+        "citizen-modal"
+    );
 
     renderCitizens();
-
     renderDashboard();
 
     showMessage(
-        "تمت إضافة المواطن بنجاح"
+        "تم تسجيل المواطن بنجاح"
     );
 }
 
 function viewCitizen(id) {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
     const c =
-        db.citizens.find(x => x.id === id);
+        db.citizens.find(
+            x => x.id === id
+        );
 
     if (!c) return;
 
@@ -618,13 +990,18 @@ function viewCitizen(id) {
 
 المعرف: ${c.id}
 الاسم: ${c.name}
-رقم الهوية: ${c.nationalId || "-"}
 العمر: ${c.age || "-"}
 الجنس: ${c.gender || "-"}
 الهاتف: ${c.phone || "-"}
-المدينة: ${c.city || "-"}
+المدينة: ${c.city || c.address || "-"}
 الحالة: ${c.status || "-"}
-تاريخ التسجيل: ${c.createdAt || "-"}`
+الترخيص: ${c.license || "-"}
+السجل الجنائي: ${
+        c.criminalRecord
+            ? "نعم"
+            : "لا"
+    }
+الملاحظات: ${c.notes || "-"}` 
     );
 }
 
@@ -632,73 +1009,149 @@ function viewCitizen(id) {
    الضباط
 ========================= */
 
-function renderOfficers() {
-    const db = loadDatabase();
+function renderOfficers(list = null) {
+    const db =
+        getAppDatabase();
+
+    const officers =
+        list || db.officers || [];
 
     const tbody =
         $("officers-table-body");
 
     if (!tbody) return;
 
-    const officers =
-        db.officers || [];
-
     if (!officers.length) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="8">
+                <td colspan="7">
                     لا توجد بيانات ضباط
                 </td>
             </tr>
         `;
+
         return;
     }
 
-    tbody.innerHTML = officers.map(o => `
-        <tr>
-            <td>${escapeHTML(o.badge || o.id)}</td>
-            <td>${escapeHTML(o.name)}</td>
-            <td>${escapeHTML(getRankName(o.rank))}</td>
-            <td>${escapeHTML(o.department || "-")}</td>
-            <td>${escapeHTML(o.phone || "-")}</td>
-            <td>
-                <span class="badge ${
-                    o.status === "متصل" ||
-                    o.status === "في الخدمة"
-                        ? "success"
-                        : "warning"
-                }">
-                    ${escapeHTML(o.status || "غير متصل")}
-                </span>
-            </td>
-            <td>${escapeHTML(o.joinDate || "-")}</td>
-            <td>
-                <button onclick="viewOfficer('${escapeHTML(o.id)}')">
-                    عرض
-                </button>
-            </td>
-        </tr>
-    `).join("");
+    tbody.innerHTML =
+        officers.map(o => {
+            const rank =
+                getUserRank(o);
+
+            return `
+                <tr>
+                    <td>
+                        ${escapeHTML(
+                            o.badge || "-"
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            o.name || "-"
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            getRankName(
+                                rank
+                            )
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            o.department ||
+                            "-"
+                        )}
+                    </td>
+
+                    <td>
+                        <span class="badge">
+                            ${escapeHTML(
+                                o.status ||
+                                "-"
+                            )}
+                        </span>
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            o.service ||
+                            "-"
+                        )}
+                    </td>
+
+                    <td>
+                        <button
+                            onclick="viewOfficer('${escapeHTML(
+                                o.badge || ""
+                            )}')"
+                        >
+                            عرض
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join("");
 }
 
-function viewOfficer(id) {
-    const db = loadDatabase();
+function searchOfficers() {
+    const input =
+        $("officer-search");
+
+    if (!input) return;
+
+    const query =
+        input.value
+            .trim()
+            .toLowerCase();
+
+    const db =
+        getAppDatabase();
+
+    const result =
+        (db.officers || [])
+            .filter(o =>
+                [
+                    o.badge,
+                    o.name,
+                    o.department,
+                    getRankName(
+                        getUserRank(o)
+                    )
+                ]
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(query)
+            );
+
+    renderOfficers(result);
+}
+
+function viewOfficer(badge) {
+    const db =
+        getAppDatabase();
 
     const o =
-        db.officers.find(x => x.id === id);
+        db.officers.find(
+            x => x.badge === badge
+        );
 
     if (!o) return;
 
     alert(
 `ملف الضابط
 
-الاسم: ${o.name}
-الرتبة: ${getRankName(o.rank)}
-المستوى: ${o.rank}/100
-الرقم الوظيفي: ${o.badge || o.id}
+الشارة: ${o.badge || "-"}
+الاسم: ${o.name || "-"}
+الرتبة: ${getRankName(
+        getUserRank(o)
+    )}
 القسم: ${o.department || "-"}
 الحالة: ${o.status || "-"}
-تاريخ الالتحاق: ${o.joinDate || "-"}`
+الخدمة: ${o.service || "-"}` 
     );
 }
 
@@ -707,7 +1160,8 @@ function viewOfficer(id) {
 ========================= */
 
 function renderVehicles(list = null) {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
     const vehicles =
         list || db.vehicles || [];
@@ -725,29 +1179,72 @@ function renderVehicles(list = null) {
                 </td>
             </tr>
         `;
+
         return;
     }
 
-    tbody.innerHTML = vehicles.map(v => `
-        <tr>
-            <td>${escapeHTML(v.plate || "-")}</td>
-            <td>${escapeHTML(v.model || "-")}</td>
-            <td>${escapeHTML(v.color || "-")}</td>
-            <td>${escapeHTML(v.type || "-")}</td>
-            <td>${escapeHTML(v.owner || "-")}</td>
-            <td>
-                <span class="badge">
-                    ${escapeHTML(v.status || "غير معروف")}
-                </span>
-            </td>
-            <td>${escapeHTML(v.insurance || "-")}</td>
-            <td>
-                <button onclick="viewVehicle('${escapeHTML(v.id)}')">
-                    عرض
-                </button>
-            </td>
-        </tr>
-    `).join("");
+    tbody.innerHTML =
+        vehicles.map(v => `
+            <tr>
+                <td>
+                    ${escapeHTML(
+                        v.plate || "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        v.model || "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        v.color || "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        v.type || "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        v.owner || "-"
+                    )}
+                </td>
+
+                <td>
+                    <span class="badge">
+                        ${escapeHTML(
+                            v.status ||
+                            "غير معروف"
+                        )}
+                    </span>
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        v.insurance ||
+                        "-"
+                    )}
+                </td>
+
+                <td>
+                    <button
+                        onclick="viewVehicle('${escapeHTML(
+                            v.id ||
+                            v.plate ||
+                            ""
+                        )}')"
+                    >
+                        عرض
+                    </button>
+                </td>
+            </tr>
+        `).join("");
 }
 
 function searchVehicles() {
@@ -757,63 +1254,80 @@ function searchVehicles() {
     if (!input) return;
 
     const query =
-        input.value.trim().toLowerCase();
+        input.value
+            .trim()
+            .toLowerCase();
 
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
     const result =
-        (db.vehicles || []).filter(v =>
-            [
-                v.id,
-                v.plate,
-                v.model,
-                v.owner,
-                v.color
-            ]
-                .join(" ")
-                .toLowerCase()
-                .includes(query)
-        );
+        (db.vehicles || [])
+            .filter(v =>
+                [
+                    v.id,
+                    v.plate,
+                    v.model,
+                    v.owner,
+                    v.color
+                ]
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(query)
+            );
 
     renderVehicles(result);
 }
 
 function openVehicleModal() {
-    const modal = $("vehicle-modal");
+    const modal =
+        $("vehicle-modal");
 
     if (modal) {
-        modal.style.display = "flex";
+        modal.style.display =
+            "flex";
     }
 }
 
 function addVehicle() {
     const plate =
-        $("vehicle-plate")?.value.trim();
+        $("vehicle-plate")
+            ?.value
+            .trim();
 
     const model =
-        $("vehicle-model")?.value.trim();
+        $("vehicle-model")
+            ?.value
+            .trim();
 
     const color =
-        $("vehicle-color")?.value.trim();
+        $("vehicle-color")
+            ?.value
+            .trim();
 
     const type =
-        $("vehicle-type")?.value;
+        $("vehicle-type")
+            ?.value;
 
     const owner =
-        $("vehicle-owner")?.value.trim();
+        $("vehicle-owner")
+            ?.value
+            .trim();
 
     if (!plate || !model) {
         showMessage(
             "رقم اللوحة ونوع المركبة مطلوبان",
             "warning"
         );
+
         return;
     }
 
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
     const vehicle = {
-        id: generateId("VEH"),
+        id: makeId("VEH"),
         plate,
         model,
         color,
@@ -824,7 +1338,9 @@ function addVehicle() {
         createdAt: now()
     };
 
-    db.vehicles.push(vehicle);
+    db.vehicles.push(
+        vehicle
+    );
 
     saveDatabase(db);
 
@@ -833,12 +1349,15 @@ function addVehicle() {
         `تم تسجيل المركبة ${plate}`
     );
 
-    closeModal("vehicle-modal");
+    closeModal(
+        "vehicle-modal"
+    );
 
-    clearForm("vehicle-modal");
+    clearForm(
+        "vehicle-modal"
+    );
 
     renderVehicles();
-
     renderDashboard();
 
     showMessage(
@@ -847,23 +1366,29 @@ function addVehicle() {
 }
 
 function viewVehicle(id) {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
     const v =
-        db.vehicles.find(x => x.id === id);
+        db.vehicles.find(
+            x =>
+                x.id === id ||
+                x.plate === id
+        );
 
     if (!v) return;
 
     alert(
 `ملف المركبة
 
-اللوحة: ${v.plate}
-الموديل: ${v.model}
+المعرف: ${v.id || "-"}
+اللوحة: ${v.plate || "-"}
+الموديل: ${v.model || "-"}
 اللون: ${v.color || "-"}
 النوع: ${v.type || "-"}
 المالك: ${v.owner || "-"}
 الحالة: ${v.status || "-"}
-التأمين: ${v.insurance || "-"}`
+التأمين: ${v.insurance || "-"}` 
     );
 }
 
@@ -872,7 +1397,8 @@ function viewVehicle(id) {
 ========================= */
 
 function renderReports() {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
     const tbody =
         $("reports-table-body");
@@ -890,74 +1416,134 @@ function renderReports() {
                 </td>
             </tr>
         `;
+
         return;
     }
 
-    tbody.innerHTML = reports.map(r => `
-        <tr>
-            <td>${escapeHTML(r.id)}</td>
-            <td>${escapeHTML(r.title || "-")}</td>
-            <td>${escapeHTML(r.type || "-")}</td>
-            <td>${escapeHTML(r.location || "-")}</td>
-            <td>${escapeHTML(r.officer || "-")}</td>
-            <td>${escapeHTML(r.date || "-")}</td>
-            <td>
-                <span class="badge">
-                    ${escapeHTML(r.status || "مفتوح")}
-                </span>
-            </td>
-            <td>
-                <button onclick="viewReport('${escapeHTML(r.id)}')">
-                    عرض
-                </button>
-            </td>
-        </tr>
-    `).join("");
+    tbody.innerHTML =
+        reports.map(r => `
+            <tr>
+                <td>
+                    ${escapeHTML(
+                        r.id
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        r.title ||
+                        "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        r.type ||
+                        "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        r.location ||
+                        "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        r.officer ||
+                        "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        r.date ||
+                        "-"
+                    )}
+                </td>
+
+                <td>
+                    <span class="badge">
+                        ${escapeHTML(
+                            r.status ||
+                            "مفتوح"
+                        )}
+                    </span>
+                </td>
+
+                <td>
+                    <button
+                        onclick="viewReport('${escapeHTML(
+                            r.id
+                        )}')"
+                    >
+                        عرض
+                    </button>
+                </td>
+            </tr>
+        `).join("");
 }
 
 function openReportModal() {
-    const modal = $("report-modal");
+    const modal =
+        $("report-modal");
 
     if (modal) {
-        modal.style.display = "flex";
+        modal.style.display =
+            "flex";
     }
 }
 
 function addReport() {
     const title =
-        $("report-title")?.value.trim();
+        $("report-title")
+            ?.value
+            .trim();
 
     const type =
-        $("report-type")?.value;
+        $("report-type")
+            ?.value;
 
     const location =
-        $("report-location")?.value.trim();
+        $("report-location")
+            ?.value
+            .trim();
 
     const description =
-        $("report-description")?.value.trim();
+        $("report-description")
+            ?.value
+            .trim();
 
     if (!title || !description) {
         showMessage(
             "العنوان ووصف التقرير مطلوبان",
             "warning"
         );
+
         return;
     }
 
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
     const report = {
-        id: generateId("RPT"),
+        id: makeId("RPT"),
         title,
         type,
         location,
         description,
-        officer: currentUser.name,
+        officer:
+            currentUser?.name ||
+            "-",
         date: now(),
         status: "مفتوح"
     };
 
-    db.reports.push(report);
+    db.reports.push(
+        report
+    );
 
     saveDatabase(db);
 
@@ -966,9 +1552,13 @@ function addReport() {
         `تم إنشاء التقرير ${report.id}`
     );
 
-    closeModal("report-modal");
+    closeModal(
+        "report-modal"
+    );
 
-    clearForm("report-modal");
+    clearForm(
+        "report-modal"
+    );
 
     renderReports();
     renderDashboard();
@@ -979,10 +1569,13 @@ function addReport() {
 }
 
 function viewReport(id) {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
     const r =
-        db.reports.find(x => x.id === id);
+        db.reports.find(
+            x => x.id === id
+        );
 
     if (!r) return;
 
@@ -990,7 +1583,7 @@ function viewReport(id) {
 `التقرير
 
 المعرف: ${r.id}
-العنوان: ${r.title}
+العنوان: ${r.title || "-"}
 النوع: ${r.type || "-"}
 الموقع: ${r.location || "-"}
 الضابط: ${r.officer || "-"}
@@ -998,7 +1591,7 @@ function viewReport(id) {
 الحالة: ${r.status || "-"}
 الوصف:
 
-${r.description || "-"}`
+${r.description || "-"}` 
     );
 }
 
@@ -1007,7 +1600,8 @@ ${r.description || "-"}`
 ========================= */
 
 function renderCalls() {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
     const container =
         $("calls-container") ||
@@ -1021,78 +1615,124 @@ function renderCalls() {
     if (!calls.length) {
         container.innerHTML =
             `<div class="empty">لا توجد بلاغات حالياً</div>`;
+
         return;
     }
 
-    container.innerHTML = calls.map(c => `
-        <div class="call-card">
-            <div>
-                <strong>${escapeHTML(c.title || "بلاغ")}</strong>
-                <p>${escapeHTML(c.description || "")}</p>
-            </div>
+    container.innerHTML =
+        calls.map(c => `
+            <div class="call-card">
 
-            <div>
-                <span class="badge ${
-                    c.status === "مغلق"
-                        ? "success"
-                        : "danger"
-                }">
-                    ${escapeHTML(c.status || "جديد")}
-                </span>
-            </div>
+                <div>
+                    <strong>
+                        ${escapeHTML(
+                            c.title ||
+                            "بلاغ"
+                        )}
+                    </strong>
 
-            <small>
-                ${escapeHTML(c.location || "-")}
-                —
-                ${escapeHTML(c.date || "-")}
-            </small>
-        </div>
-    `).join("");
+                    <p>
+                        ${escapeHTML(
+                            c.description ||
+                            ""
+                        )}
+                    </p>
+                </div>
+
+                <div>
+                    <span class="badge ${
+                        c.status ===
+                        "مغلق"
+                            ? "success"
+                            : "danger"
+                    }">
+                        ${escapeHTML(
+                            c.status ||
+                            "جديد"
+                        )}
+                    </span>
+                </div>
+
+                <small>
+                    ${escapeHTML(
+                        c.location ||
+                        "-"
+                    )}
+
+                    —
+
+                    ${escapeHTML(
+                        c.date ||
+                        c.createdAt ||
+                        "-"
+                    )}
+                </small>
+
+            </div>
+        `).join("");
 }
 
 function openCallModal() {
-    const modal = $("call-modal");
+    const modal =
+        $("call-modal");
 
     if (modal) {
-        modal.style.display = "flex";
+        modal.style.display =
+            "flex";
     }
 }
 
 function addCall() {
     const title =
-        $("call-title")?.value.trim();
+        $("call-title")
+            ?.value
+            .trim();
 
     const location =
-        $("call-location")?.value.trim();
+        $("call-location")
+            ?.value
+            .trim();
 
     const priority =
-        $("call-priority")?.value;
+        $("call-priority")
+            ?.value;
 
     const description =
-        $("call-description")?.value.trim();
+        $("call-description")
+            ?.value
+            .trim();
 
-    if (!title || !location) {
+    if (!title && !description) {
         showMessage(
-            "عنوان البلاغ والموقع مطلوبان",
+            "أدخل عنوان أو وصف البلاغ",
             "warning"
         );
+
         return;
     }
 
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
     const call = {
-        id: generateId("CALL"),
-        title,
+        id: makeId("CALL"),
+        title:
+            title ||
+            "بلاغ جديد",
         location,
-        priority,
+        priority:
+            priority ||
+            "متوسطة",
         description,
-        status: "جديد",
+        status: "نشط",
+        createdAt: now(),
         date: now(),
-        createdBy: currentUser.name
+        assignedOfficer: ""
     };
 
-    db.calls.push(call);
+    db.calls.push(
+        call
+    );
 
     saveDatabase(db);
 
@@ -1101,9 +1741,13 @@ function addCall() {
         `تم تسجيل البلاغ ${call.id}`
     );
 
-    closeModal("call-modal");
+    closeModal(
+        "call-modal"
+    );
 
-    clearForm("call-modal");
+    clearForm(
+        "call-modal"
+    );
 
     renderCalls();
     renderDashboard();
@@ -1118,35 +1762,96 @@ function addCall() {
 ========================= */
 
 function renderWanted() {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
-    const container =
-        $("wanted-list") ||
+    const tbody =
         $("wanted-table-body");
 
-    if (!container) return;
+    const container =
+        $("wanted-container");
 
     const wanted =
         db.wanted || [];
 
-    if (!wanted.length) {
-        container.innerHTML =
-            `<div class="empty">لا توجد أسماء مطلوبة</div>`;
+    if (tbody) {
+        if (!wanted.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7">
+                        لا توجد سجلات مطلوبين
+                    </td>
+                </tr>
+            `;
+        } else {
+            tbody.innerHTML =
+                wanted.map(w => `
+                    <tr>
+                        <td>
+                            ${escapeHTML(
+                                w.id ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                w.name ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                w.danger ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                w.reason ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                w.date ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            <span class="badge danger">
+                                ${escapeHTML(
+                                    w.status ||
+                                    "مطلوب"
+                                )}
+                            </span>
+                        </td>
+
+                        <td>
+                            <button
+                                onclick="viewWanted('${escapeHTML(
+                                    w.id
+                                )}')"
+                            >
+                                عرض
+                            </button>
+                        </td>
+                    </tr>
+                `).join("");
+        }
+
         return;
     }
 
-    if (container.tagName === "TBODY") {
+    if (!container) return;
+
+    if (!wanted.length) {
         container.innerHTML =
-            wanted.map(w => `
-                <tr>
-                    <td>${escapeHTML(w.id)}</td>
-                    <td>${escapeHTML(w.name)}</td>
-                    <td>${escapeHTML(w.reason || "-")}</td>
-                    <td>${escapeHTML(w.level || "-")}</td>
-                    <td>${escapeHTML(w.date || "-")}</td>
-                    <td>${escapeHTML(w.status || "مطلوب")}</td>
-                </tr>
-            `).join("");
+            `<div class="empty">لا توجد سجلات مطلوبين</div>`;
 
         return;
     }
@@ -1154,14 +1859,51 @@ function renderWanted() {
     container.innerHTML =
         wanted.map(w => `
             <div class="wanted-card">
-                <strong>${escapeHTML(w.name)}</strong>
-                <span>${escapeHTML(w.reason || "-")}</span>
-                <small>
-                    درجة الخطورة:
-                    ${escapeHTML(w.level || "-")}
-                </small>
+                <strong>
+                    ${escapeHTML(
+                        w.name ||
+                        "-"
+                    )}
+                </strong>
+
+                <p>
+                    ${escapeHTML(
+                        w.reason ||
+                        "-"
+                    )}
+                </p>
+
+                <span class="badge danger">
+                    ${escapeHTML(
+                        w.status ||
+                        "مطلوب"
+                    )}
+                </span>
             </div>
         `).join("");
+}
+
+function viewWanted(id) {
+    const db =
+        getAppDatabase();
+
+    const w =
+        db.wanted.find(
+            x => x.id === id
+        );
+
+    if (!w) return;
+
+    alert(
+`ملف المطلوب
+
+المعرف: ${w.id || "-"}
+الاسم: ${w.name || "-"}
+درجة الخطورة: ${w.danger || "-"}
+السبب: ${w.reason || "-"}
+التاريخ: ${w.date || "-"}
+الحالة: ${w.status || "-"}` 
+    );
 }
 
 /* =========================
@@ -1169,46 +1911,148 @@ function renderWanted() {
 ========================= */
 
 function renderWarrants() {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
-    const container =
-        $("warrants-list") ||
+    const tbody =
         $("warrants-table-body");
 
-    if (!container) return;
+    const container =
+        $("warrants-container");
 
     const warrants =
         db.warrants || [];
 
-    if (!warrants.length) {
-        container.innerHTML =
-            `<div class="empty">لا توجد مذكرات</div>`;
+    if (tbody) {
+        if (!warrants.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7">
+                        لا توجد مذكرات
+                    </td>
+                </tr>
+            `;
+        } else {
+            tbody.innerHTML =
+                warrants.map(w => `
+                    <tr>
+                        <td>
+                            ${escapeHTML(
+                                w.id ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                w.person ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                w.type ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                w.authority ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                w.date ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            <span class="badge">
+                                ${escapeHTML(
+                                    w.status ||
+                                    "-"
+                                )}
+                            </span>
+                        </td>
+
+                        <td>
+                            <button
+                                onclick="viewWarrant('${escapeHTML(
+                                    w.id
+                                )}')"
+                            >
+                                عرض
+                            </button>
+                        </td>
+                    </tr>
+                `).join("");
+        }
+
         return;
     }
 
-    if (container.tagName === "TBODY") {
+    if (!container) return;
+
+    if (!warrants.length) {
         container.innerHTML =
-            warrants.map(w => `
-                <tr>
-                    <td>${escapeHTML(w.id)}</td>
-                    <td>${escapeHTML(w.subject || "-")}</td>
-                    <td>${escapeHTML(w.type || "-")}</td>
-                    <td>${escapeHTML(w.issuedBy || "-")}</td>
-                    <td>${escapeHTML(w.date || "-")}</td>
-                    <td>${escapeHTML(w.status || "-")}</td>
-                </tr>
-            `).join("");
+            `<div class="empty">لا توجد مذكرات</div>`;
 
         return;
     }
 
     container.innerHTML =
         warrants.map(w => `
-            <div class="panel-item">
-                <strong>${escapeHTML(w.subject || "-")}</strong>
-                <span>${escapeHTML(w.type || "-")}</span>
+            <div class="warrant-card">
+                <strong>
+                    ${escapeHTML(
+                        w.person ||
+                        "-"
+                    )}
+                </strong>
+
+                <p>
+                    ${escapeHTML(
+                        w.type ||
+                        "-"
+                    )}
+                </p>
+
+                <span class="badge">
+                    ${escapeHTML(
+                        w.status ||
+                        "-"
+                    )}
+                </span>
             </div>
         `).join("");
+}
+
+function viewWarrant(id) {
+    const db =
+        getAppDatabase();
+
+    const w =
+        db.warrants.find(
+            x => x.id === id
+        );
+
+    if (!w) return;
+
+    alert(
+`المذكرة
+
+المعرف: ${w.id || "-"}
+الشخص: ${w.person || "-"}
+النوع: ${w.type || "-"}
+الجهة: ${w.authority || "-"}
+التاريخ: ${w.date || "-"}
+الحالة: ${w.status || "-"}` 
+    );
 }
 
 /* =========================
@@ -1216,47 +2060,146 @@ function renderWarrants() {
 ========================= */
 
 function renderTickets() {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
+
+    const tbody =
+        $("tickets-table-body");
 
     const container =
-        $("tickets-table-body") ||
-        $("tickets-list");
-
-    if (!container) return;
+        $("tickets-container");
 
     const tickets =
         db.tickets || [];
 
-    if (!tickets.length) {
-        container.innerHTML =
-            `<div class="empty">لا توجد مخالفات</div>`;
+    if (tbody) {
+        if (!tickets.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7">
+                        لا توجد مخالفات
+                    </td>
+                </tr>
+            `;
+        } else {
+            tbody.innerHTML =
+                tickets.map(t => `
+                    <tr>
+                        <td>
+                            ${escapeHTML(
+                                t.id ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                t.citizen ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                t.type ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                t.fine ??
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                t.officer ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                t.date ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            <button
+                                onclick="viewTicket('${escapeHTML(
+                                    t.id
+                                )}')"
+                            >
+                                عرض
+                            </button>
+                        </td>
+                    </tr>
+                `).join("");
+        }
+
         return;
     }
 
-    if (container.tagName === "TBODY") {
+    if (!container) return;
+
+    if (!tickets.length) {
         container.innerHTML =
-            tickets.map(t => `
-                <tr>
-                    <td>${escapeHTML(t.id)}</td>
-                    <td>${escapeHTML(t.citizen || "-")}</td>
-                    <td>${escapeHTML(t.violation || "-")}</td>
-                    <td>${escapeHTML(t.amount || "0")} DH</td>
-                    <td>${escapeHTML(t.officer || "-")}</td>
-                    <td>${escapeHTML(t.date || "-")}</td>
-                    <td>${escapeHTML(t.status || "-")}</td>
-                </tr>
-            `).join("");
+            `<div class="empty">لا توجد مخالفات</div>`;
 
         return;
     }
 
     container.innerHTML =
         tickets.map(t => `
-            <div class="panel-item">
-                <strong>${escapeHTML(t.violation || "-")}</strong>
-                <span>${escapeHTML(t.amount || "0")} DH</span>
+            <div class="ticket-card">
+                <strong>
+                    ${escapeHTML(
+                        t.citizen ||
+                        "-"
+                    )}
+                </strong>
+
+                <p>
+                    ${escapeHTML(
+                        t.type ||
+                        "-"
+                    )}
+                </p>
+
+                <span>
+                    ${escapeHTML(
+                        t.fine ??
+                        "-"
+                    )}
+                </span>
             </div>
         `).join("");
+}
+
+function viewTicket(id) {
+    const db =
+        getAppDatabase();
+
+    const t =
+        db.tickets.find(
+            x => x.id === id
+        );
+
+    if (!t) return;
+
+    alert(
+`المخالفة
+
+المعرف: ${t.id || "-"}
+المواطن: ${t.citizen || "-"}
+النوع: ${t.type || "-"}
+الغرامة: ${t.fine ?? "-"}
+الضابط: ${t.officer || "-"}
+التاريخ: ${t.date || "-"}` 
+    );
 }
 
 /* =========================
@@ -1264,44 +2207,120 @@ function renderTickets() {
 ========================= */
 
 function renderRecords() {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
+
+    const tbody =
+        $("records-table-body");
 
     const container =
-        $("records-table-body") ||
-        $("records-list");
-
-    if (!container) return;
+        $("records-container");
 
     const records =
         db.records || [];
 
-    if (!records.length) {
-        container.innerHTML =
-            `<div class="empty">لا توجد سجلات</div>`;
+    if (tbody) {
+        if (!records.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7">
+                        لا توجد سجلات جنائية
+                    </td>
+                </tr>
+            `;
+        } else {
+            tbody.innerHTML =
+                records.map(r => `
+                    <tr>
+                        <td>
+                            ${escapeHTML(
+                                r.id ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                r.citizen ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                r.citizenId ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                r.category ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                r.description ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                r.date ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            <span class="badge">
+                                ${escapeHTML(
+                                    r.status ||
+                                    "-"
+                                )}
+                            </span>
+                        </td>
+                    </tr>
+                `).join("");
+        }
+
         return;
     }
 
-    if (container.tagName === "TBODY") {
+    if (!container) return;
+
+    if (!records.length) {
         container.innerHTML =
-            records.map(r => `
-                <tr>
-                    <td>${escapeHTML(r.id)}</td>
-                    <td>${escapeHTML(r.citizen || "-")}</td>
-                    <td>${escapeHTML(r.type || "-")}</td>
-                    <td>${escapeHTML(r.description || "-")}</td>
-                    <td>${escapeHTML(r.date || "-")}</td>
-                    <td>${escapeHTML(r.officer || "-")}</td>
-                </tr>
-            `).join("");
+            `<div class="empty">لا توجد سجلات جنائية</div>`;
 
         return;
     }
 
     container.innerHTML =
         records.map(r => `
-            <div class="panel-item">
-                <strong>${escapeHTML(r.citizen || "-")}</strong>
-                <span>${escapeHTML(r.type || "-")}</span>
+            <div class="record-card">
+                <strong>
+                    ${escapeHTML(
+                        r.citizen ||
+                        "-"
+                    )}
+                </strong>
+
+                <p>
+                    ${escapeHTML(
+                        r.description ||
+                        "-"
+                    )}
+                </p>
+
+                <small>
+                    ${escapeHTML(
+                        r.date ||
+                        "-"
+                    )}
+                </small>
             </div>
         `).join("");
 }
@@ -1311,35 +2330,93 @@ function renderRecords() {
 ========================= */
 
 function renderOperations() {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
-    const container =
-        $("operations-list") ||
+    const tbody =
         $("operations-table-body");
 
-    if (!container) return;
+    const container =
+        $("operations-container");
 
     const operations =
         db.operations || [];
 
-    if (!operations.length) {
-        container.innerHTML =
-            `<div class="empty">لا توجد عمليات</div>`;
+    if (tbody) {
+        if (!operations.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7">
+                        لا توجد عمليات
+                    </td>
+                </tr>
+            `;
+        } else {
+            tbody.innerHTML =
+                operations.map(o => `
+                    <tr>
+                        <td>
+                            ${escapeHTML(
+                                o.id ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                o.name ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                o.location ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                o.commander ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                o.units ??
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            <span class="badge">
+                                ${escapeHTML(
+                                    o.status ||
+                                    "-"
+                                )}
+                            </span>
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                o.start ||
+                                "-"
+                            )}
+                        </td>
+                    </tr>
+                `).join("");
+        }
+
         return;
     }
 
-    if (container.tagName === "TBODY") {
+    if (!container) return;
+
+    if (!operations.length) {
         container.innerHTML =
-            operations.map(o => `
-                <tr>
-                    <td>${escapeHTML(o.id)}</td>
-                    <td>${escapeHTML(o.name || "-")}</td>
-                    <td>${escapeHTML(o.commander || "-")}</td>
-                    <td>${escapeHTML(o.location || "-")}</td>
-                    <td>${escapeHTML(o.status || "-")}</td>
-                    <td>${escapeHTML(o.date || "-")}</td>
-                </tr>
-            `).join("");
+            `<div class="empty">لا توجد عمليات</div>`;
 
         return;
     }
@@ -1347,57 +2424,28 @@ function renderOperations() {
     container.innerHTML =
         operations.map(o => `
             <div class="operation-card">
-                <strong>${escapeHTML(o.name || "-")}</strong>
-                <span>${escapeHTML(o.location || "-")}</span>
-                <small>
-                    ${escapeHTML(o.status || "-")}
-                </small>
+                <strong>
+                    ${escapeHTML(
+                        o.name ||
+                        "-"
+                    )}
+                </strong>
+
+                <p>
+                    ${escapeHTML(
+                        o.location ||
+                        "-"
+                    )}
+                </p>
+
+                <span class="badge">
+                    ${escapeHTML(
+                        o.status ||
+                        "-"
+                    )}
+                </span>
             </div>
         `).join("");
-}
-
-function createOperation() {
-    if (!hasPermission("operations")) {
-        showMessage(
-            "لا توجد لديك صلاحية إنشاء عملية",
-            "danger"
-        );
-        return;
-    }
-
-    const name =
-        prompt("اسم العملية:");
-
-    if (!name) return;
-
-    const location =
-        prompt("موقع العملية:") || "غير محدد";
-
-    const db = loadDatabase();
-
-    const operation = {
-        id: generateId("OP"),
-        name,
-        location,
-        commander: currentUser.name,
-        status: "نشطة",
-        date: now()
-    };
-
-    db.operations.push(operation);
-
-    saveDatabase(db);
-
-    addActivity(
-        "عملية جديدة",
-        `تم إنشاء العملية ${name}`
-    );
-
-    renderOperations();
-
-    showMessage(
-        "تم إنشاء العملية بنجاح"
-    );
 }
 
 /* =========================
@@ -1405,9 +2453,11 @@ function createOperation() {
 ========================= */
 
 function renderNotifications() {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
     const container =
+        $("notifications-container") ||
         $("notifications-list");
 
     if (!container) return;
@@ -1418,6 +2468,7 @@ function renderNotifications() {
     if (!notifications.length) {
         container.innerHTML =
             `<div class="empty">لا توجد إشعارات</div>`;
+
         return;
     }
 
@@ -1426,30 +2477,36 @@ function renderNotifications() {
             .slice()
             .reverse()
             .map(n => `
-                <div class="notification-item">
-                    <strong>${escapeHTML(n.title || "إشعار")}</strong>
-                    <p>${escapeHTML(n.message || "")}</p>
-                    <small>${escapeHTML(n.date || "")}</small>
+                <div class="notification-card ${
+                    n.read
+                        ? "read"
+                        : "unread"
+                }">
+
+                    <strong>
+                        ${escapeHTML(
+                            n.title ||
+                            "إشعار"
+                        )}
+                    </strong>
+
+                    <p>
+                        ${escapeHTML(
+                            n.message ||
+                            ""
+                        )}
+                    </p>
+
+                    <small>
+                        ${escapeHTML(
+                            n.date ||
+                            "-"
+                        )}
+                    </small>
+
                 </div>
             `)
             .join("");
-}
-
-function toggleNotifications() {
-    const db = loadDatabase();
-
-    db.settings.notifications =
-        db.settings.notifications === false
-            ? true
-            : false;
-
-    saveDatabase(db);
-
-    showMessage(
-        db.settings.notifications
-            ? "تم تفعيل الإشعارات"
-            : "تم تعطيل الإشعارات"
-    );
 }
 
 /* =========================
@@ -1457,75 +2514,94 @@ function toggleNotifications() {
 ========================= */
 
 function renderDatabase() {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
-    const mapping = {
-        "db-citizens-count":
-            db.citizens?.length || 0,
+    setText(
+        "database-version",
+        db.version ||
+        "2026.1"
+    );
 
-        "db-officers-count":
-            db.officers?.length || 0,
+    setText(
+        "database-size",
+        JSON.stringify(db).length
+    );
 
-        "db-vehicles-count":
-            db.vehicles?.length || 0,
+    setText(
+        "database-users",
+        db.users.length
+    );
 
-        "db-reports-count":
-            db.reports?.length || 0,
+    setText(
+        "database-citizens",
+        db.citizens.length
+    );
 
-        "db-calls-count":
-            db.calls?.length || 0,
+    setText(
+        "database-officers",
+        db.officers.length
+    );
 
-        "db-records-count":
-            db.records?.length || 0
-    };
-
-    Object.entries(mapping).forEach(
-        ([id, value]) => setText(id, value)
+    setText(
+        "database-vehicles",
+        db.vehicles.length
     );
 }
 
 function exportDatabase() {
-    if (!hasPermission("database")) {
+    if (
+        !currentUser ||
+        getUserRank(
+            currentUser
+        ) < 50
+    ) {
         showMessage(
-            "لا توجد لديك صلاحية تصدير قاعدة البيانات",
+            "ليس لديك صلاحية تصدير قاعدة البيانات",
             "danger"
         );
+
         return;
     }
 
-    const db = loadDatabase();
-
-    const data =
-        JSON.stringify(db, null, 2);
+    const db =
+        getAppDatabase();
 
     const blob =
         new Blob(
-            [data],
-            { type: "application/json" }
+            [
+                JSON.stringify(
+                    db,
+                    null,
+                    4
+                )
+            ],
+            {
+                type:
+                    "application/json"
+            }
         );
 
     const url =
-        URL.createObjectURL(blob);
+        URL.createObjectURL(
+            blob
+        );
 
     const a =
-        document.createElement("a");
+        document.createElement(
+            "a"
+        );
 
     a.href = url;
-
     a.download =
-        `RESPECT_CFW_RPD_DATABASE_${Date.now()}.json`;
+        "RESPECT_CFW_RPD_DATABASE.json";
 
     document.body.appendChild(a);
-
     a.click();
-
     a.remove();
 
-    URL.revokeObjectURL(url);
-
-    addActivity(
-        "تصدير قاعدة البيانات",
-        `${currentUser.name} قام بتصدير قاعدة البيانات`
+    URL.revokeObjectURL(
+        url
     );
 
     showMessage(
@@ -1534,37 +2610,49 @@ function exportDatabase() {
 }
 
 function resetDatabase() {
-    if (!hasPermission("database")) {
+    if (
+        !currentUser ||
+        getUserRank(
+            currentUser
+        ) < 100
+    ) {
         showMessage(
-            "لا توجد لديك صلاحية",
+            "هذه العملية مخصصة لقائد الشرطة فقط",
             "danger"
         );
+
         return;
     }
 
-    const confirmation =
-        prompt(
-            "تحذير: سيتم حذف البيانات المحلية.\nاكتب RESET للتأكيد:"
+    const confirmReset =
+        confirm(
+            "تحذير: سيتم حذف البيانات المحلية وإرجاع قاعدة البيانات للوضع الافتراضي. هل تريد المتابعة؟"
         );
 
-    if (confirmation !== "RESET") {
-        showMessage(
-            "تم إلغاء العملية",
-            "warning"
-        );
+    if (!confirmReset) {
         return;
     }
 
-    const newDb =
-        createDefaultDatabase();
-
-    saveDatabase(newDb);
+    if (
+        typeof resetDatabaseStorage ===
+        "function"
+    ) {
+        resetDatabaseStorage();
+    } else {
+        localStorage.removeItem(
+            "RESPECT_CFW_RPD_DATABASE"
+        );
+    }
 
     showMessage(
-        "تمت إعادة قاعدة البيانات إلى الوضع الافتراضي"
+        "تمت إعادة ضبط قاعدة البيانات",
+        "success"
     );
 
-    renderAll();
+    setTimeout(
+        () => location.reload(),
+        700
+    );
 }
 
 /* =========================
@@ -1572,70 +2660,139 @@ function resetDatabase() {
 ========================= */
 
 function renderUsers() {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
-    const container =
-        $("users-table-body") ||
-        $("users-list");
+    const tbody =
+        $("users-table-body");
 
-    if (!container) return;
+    if (!tbody) return;
 
     const users =
         db.users || [];
 
     if (!users.length) {
-        container.innerHTML =
-            `<div class="empty">لا يوجد مستخدمون</div>`;
-        return;
-    }
-
-    if (container.tagName === "TBODY") {
-        container.innerHTML =
-            users.map(u => `
-                <tr>
-                    <td>${escapeHTML(u.username)}</td>
-                    <td>${escapeHTML(u.name)}</td>
-                    <td>${escapeHTML(getRankName(u.rank))}</td>
-                    <td>${escapeHTML(u.badge || "-")}</td>
-                    <td>${escapeHTML(u.department || "-")}</td>
-                    <td>
-                        <span class="badge">
-                            ${escapeHTML(u.status || "فعال")}
-                        </span>
-                    </td>
-                </tr>
-            `).join("");
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7">
+                    لا توجد حسابات
+                </td>
+            </tr>
+        `;
 
         return;
     }
 
-    container.innerHTML =
+    tbody.innerHTML =
         users.map(u => `
-            <div class="user-card">
-                <strong>${escapeHTML(u.name)}</strong>
-                <span>${escapeHTML(u.username)}</span>
-                <small>${escapeHTML(getRankName(u.rank))}</small>
-            </div>
+            <tr>
+                <td>
+                    ${escapeHTML(
+                        u.id ||
+                        "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        u.username ||
+                        "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        u.name ||
+                        "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        getRankName(
+                            getUserRank(u)
+                        )
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        u.department ||
+                        "-"
+                    )}
+                </td>
+
+                <td>
+                    <span class="badge">
+                        ${escapeHTML(
+                            u.status ||
+                            "-"
+                        )}
+                    </span>
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        u.badge ||
+                        "-"
+                    )}
+                </td>
+            </tr>
         `).join("");
 }
 
 function openUserModal() {
-    const modal =
-        document.createElement("div");
+    if (
+        !currentUser ||
+        getUserRank(
+            currentUser
+        ) < 85
+    ) {
+        showMessage(
+            "هذه العملية مخصصة للرتب العليا",
+            "danger"
+        );
 
-    modal.className = "modal";
-    modal.id = "dynamic-user-modal";
+        return;
+    }
+
+    const existing =
+        $("dynamic-user-modal");
+
+    if (existing) {
+        existing.style.display =
+            "flex";
+
+        return;
+    }
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+    modal.id =
+        "dynamic-user-modal";
+
+    modal.className =
+        "modal";
 
     modal.innerHTML = `
         <div class="modal-content">
+
             <div class="modal-header">
-                <h2>إضافة مستخدم</h2>
-                <button onclick="closeModal('dynamic-user-modal')">
+                <h2>
+                    إنشاء مستخدم جديد
+                </h2>
+
+                <button
+                    onclick="closeModal('dynamic-user-modal')"
+                >
                     ×
                 </button>
             </div>
 
-            <div class="form-grid">
+            <div class="modal-body">
 
                 <input
                     id="new-user-username"
@@ -1644,7 +2801,7 @@ function openUserModal() {
 
                 <input
                     id="new-user-name"
-                    placeholder="الاسم الكامل"
+                    placeholder="الاسم"
                 >
 
                 <input
@@ -1658,7 +2815,8 @@ function openUserModal() {
                     type="number"
                     min="0"
                     max="100"
-                    placeholder="الرتبة 0 - 100"
+                    value="10"
+                    placeholder="مستوى الرتبة"
                 >
 
                 <input
@@ -1674,84 +2832,133 @@ function openUserModal() {
             >
                 إنشاء المستخدم
             </button>
+
         </div>
     `;
 
-    document.body.appendChild(modal);
+    document.body.appendChild(
+        modal
+    );
 
-    modal.style.display = "flex";
+    modal.style.display =
+        "flex";
 }
 
 function addUser() {
-    if (!currentUser || currentUser.rank < 85) {
+    if (
+        !currentUser ||
+        getUserRank(
+            currentUser
+        ) < 85
+    ) {
         showMessage(
             "هذه العملية مخصصة للرتب العليا",
             "danger"
         );
+
         return;
     }
 
     const username =
-        $("new-user-username")?.value.trim();
+        $("new-user-username")
+            ?.value
+            .trim();
 
     const name =
-        $("new-user-name")?.value.trim();
+        $("new-user-name")
+            ?.value
+            .trim();
 
     const password =
-        $("new-user-password")?.value;
+        $("new-user-password")
+            ?.value;
 
     const rank =
         Number(
-            $("new-user-rank")?.value || 0
+            $("new-user-rank")
+                ?.value || 0
         );
 
     const department =
-        $("new-user-department")?.value.trim();
+        $("new-user-department")
+            ?.value
+            .trim();
 
-    if (!username || !name || !password) {
+    if (
+        !username ||
+        !name ||
+        !password
+    ) {
         showMessage(
             "يرجى ملء البيانات الأساسية",
             "warning"
         );
+
         return;
     }
 
-    if (rank < 0 || rank > 100) {
+    if (
+        rank < 0 ||
+        rank > 100
+    ) {
         showMessage(
             "الرتبة يجب أن تكون بين 0 و100",
             "warning"
         );
+
         return;
     }
 
-    const db = loadDatabase();
+    if (
+        rank >=
+        getUserRank(
+            currentUser
+        )
+    ) {
+        showMessage(
+            "لا يمكنك إنشاء مستخدم برتبة مساوية أو أعلى من رتبتك",
+            "danger"
+        );
+
+        return;
+    }
+
+    const db =
+        getAppDatabase();
 
     if (
         db.users.some(
-            u => u.username === username
+            u =>
+                u.username ===
+                username
         )
     ) {
         showMessage(
             "اسم المستخدم موجود مسبقاً",
             "danger"
         );
+
         return;
     }
 
     const user = {
-        id: generateId("USR"),
+        id: makeId("USR"),
         username,
         password,
         name,
         rank,
-        badge: generateId("RPD"),
+        rankLevel: rank,
+        badge: makeId("RPD"),
         department:
-            department || "غير محدد",
+            department ||
+            "غير محدد",
         status: "فعال",
         createdAt: now()
     };
 
-    db.users.push(user);
+    db.users.push(
+        user
+    );
 
     saveDatabase(db);
 
@@ -1783,13 +2990,21 @@ function renderRanks() {
 
     let html = "";
 
-    for (let level = 0; level <= 100; level++) {
+    for (
+        let level = 0;
+        level <= 100;
+        level++
+    ) {
         const rank =
-            getRankByLevel(level);
+            getRankByLevel(
+                level
+            );
 
         const isCurrent =
             currentUser &&
-            Number(currentUser.rank) === level;
+            getUserRank(
+                currentUser
+            ) === level;
 
         html += `
             <div class="rank-card ${
@@ -1803,12 +3018,16 @@ function renderRanks() {
                 </div>
 
                 <div class="rank-name">
-                    ${escapeHTML(rank.name)}
+                    ${escapeHTML(
+                        rank.name
+                    )}
                 </div>
 
                 <div class="rank-permissions">
                     ${escapeHTML(
-                        rank.permissions?.join(" • ") ||
+                        rank.permissions?.join(
+                            " • "
+                        ) ||
                         "صلاحيات أساسية"
                     )}
                 </div>
@@ -1817,7 +3036,8 @@ function renderRanks() {
         `;
     }
 
-    container.innerHTML = html;
+    container.innerHTML =
+        html;
 }
 
 /* =========================
@@ -1825,15 +3045,39 @@ function renderRanks() {
 ========================= */
 
 function renderSettings() {
-    const db = loadDatabase();
+    const db =
+        getAppDatabase();
 
     const notifications =
         $("notifications-toggle");
 
     if (notifications) {
         notifications.checked =
-            db.settings.notifications !== false;
+            db.settings.notifications !==
+            false;
     }
+}
+
+function toggleNotifications() {
+    const db =
+        getAppDatabase();
+
+    const input =
+        $("notifications-toggle");
+
+    db.settings.notifications =
+        input
+            ? input.checked
+            : !db.settings
+                .notifications;
+
+    saveDatabase(db);
+
+    showMessage(
+        db.settings.notifications
+            ? "تم تفعيل الإشعارات"
+            : "تم تعطيل الإشعارات"
+    );
 }
 
 function toggleTheme() {
@@ -1864,12 +3108,16 @@ function applyLightMode() {
 
     if (!style) {
         style =
-            document.createElement("style");
+            document.createElement(
+                "style"
+            );
 
         style.id =
             "rpd-light-style";
 
-        document.head.appendChild(style);
+        document.head.appendChild(
+            style
+        );
     }
 
     style.textContent = `
@@ -1918,31 +3166,45 @@ function loadTheme() {
 ========================= */
 
 function closeModal(id) {
-    const modal = $(id);
+    const modal =
+        $(id);
 
     if (!modal) return;
 
-    modal.style.display = "none";
+    modal.style.display =
+        "none";
 
-    if (id === "dynamic-user-modal") {
-        setTimeout(() => {
-            modal.remove();
-        }, 300);
+    if (
+        id ===
+        "dynamic-user-modal"
+    ) {
+        setTimeout(
+            () => {
+                modal.remove();
+            },
+            300
+        );
     }
 }
 
 function clearForm(modalId) {
-    const modal = $(modalId);
+    const modal =
+        $(modalId);
 
     if (!modal) return;
 
-    modal.querySelectorAll(
-        "input, textarea, select"
-    ).forEach(el => {
-        if (el.type !== "button") {
-            el.value = "";
-        }
-    });
+    modal
+        .querySelectorAll(
+            "input, textarea, select"
+        )
+        .forEach(el => {
+            if (
+                el.type !==
+                "button"
+            ) {
+                el.value = "";
+            }
+        });
 }
 
 /* إغلاق النافذة عند الضغط خارجها */
@@ -1970,14 +3232,15 @@ function addActivity(
     description
 ) {
     try {
-        const db = loadDatabase();
+        const db =
+            getAppDatabase();
 
         if (!db.activities) {
             db.activities = [];
         }
 
         db.activities.push({
-            id: generateId("ACT"),
+            id: makeId("ACT"),
             title,
             description,
             date: now(),
@@ -1986,9 +3249,14 @@ function addActivity(
                 "النظام"
         });
 
-        if (db.activities.length > 100) {
+        if (
+            db.activities.length >
+            100
+        ) {
             db.activities =
-                db.activities.slice(-100);
+                db.activities.slice(
+                    -100
+                );
         }
 
         saveDatabase(db);
@@ -2004,11 +3272,15 @@ function addActivity(
    أدوات DOM
 ========================= */
 
-function setText(id, value) {
+function setText(
+    id,
+    value
+) {
     const el = $(id);
 
     if (el) {
-        el.textContent = value;
+        el.textContent =
+            value;
     }
 }
 
@@ -2017,6 +3289,10 @@ function setText(id, value) {
 ========================= */
 
 function renderAll() {
+    if (!databaseReady()) {
+        return;
+    }
+
     renderDashboard();
     renderCitizens();
     renderOfficers();
@@ -2035,7 +3311,8 @@ function renderAll() {
     renderSettings();
 
     openPage(
-        currentPage || "dashboard"
+        currentPage ||
+        "dashboard"
     );
 }
 
@@ -2047,19 +3324,25 @@ document.addEventListener(
     "keydown",
     event => {
         if (
-            event.key === "Escape"
+            event.key ===
+            "Escape"
         ) {
             document
-                .querySelectorAll(".modal")
-                .forEach(modal => {
-                    modal.style.display =
-                        "none";
-                });
+                .querySelectorAll(
+                    ".modal"
+                )
+                .forEach(
+                    modal => {
+                        modal.style.display =
+                            "none";
+                    }
+                );
         }
 
         if (
             event.ctrlKey &&
-            event.key.toLowerCase() === "k"
+            event.key.toLowerCase() ===
+                "k"
         ) {
             event.preventDefault();
 
@@ -2080,14 +3363,30 @@ document.addEventListener(
 document.addEventListener(
     "DOMContentLoaded",
     () => {
-
         loadTheme();
+
+        if (!databaseReady()) {
+            console.error(
+                "RESPECT CFW: database.js غير محمل أو فيه خطأ."
+            );
+
+            showMessage(
+                "خطأ: ملف database.js غير محمل. يجب تحميله قبل app.js",
+                "danger"
+            );
+        }
 
         const session =
             getSession();
 
-        if (session) {
-            currentUser = session;
+        if (
+            session &&
+            databaseReady()
+        ) {
+            currentUser =
+                normalizeUser(
+                    session
+                );
 
             const loginScreen =
                 $("login-screen");
@@ -2109,7 +3408,6 @@ document.addEventListener(
 
             renderAll();
         } else {
-
             const loginScreen =
                 $("login-screen");
 
@@ -2137,7 +3435,8 @@ document.addEventListener(
                 "keydown",
                 event => {
                     if (
-                        event.key === "Enter"
+                        event.key ===
+                        "Enter"
                     ) {
                         login();
                     }
@@ -2153,14 +3452,14 @@ document.addEventListener(
                 "keydown",
                 event => {
                     if (
-                        event.key === "Enter"
+                        event.key ===
+                        "Enter"
                     ) {
                         login();
                     }
                 }
             );
         }
-
     }
 );
 
