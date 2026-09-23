@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>RESPECT CFW | R.P.D MDT</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- =========================
+     شاشة تسجيل الدخول
+========================= -->
+
+<div id="loginScreen" class="login-screen">
+
+    <div class="login-box">
+
+        <div class="brand-logo">
+            <div class="logo-circle">RPD</div>
+        </div>
+
+        <h1>RESPECT CFW</h1>
+        <h2>نظام بيانات الشرطة</h2>
+
+        <p class="login-subtitle">
+            محطة البيانات المتنقلة — R.P.D
+        </p>
+
+        <div class="input-group">
+            <label>اسم المستخدم أو رقم الشارة</label>
+            <input
+                id="loginUsername"
+                type="text"
+                placeholder="مثال: RPD-0001"
+            >
+        </div>
+
+        <div class="input-group">
+            <label>كلمة المرور</label>
+            <input
+                id="loginPassword"
+                type="password"
+                placeholder="أدخل كلمة المرور"
+            >
+        </div>
+
+        <button class="main-login-btn" onclick="login()">
+            دخول إلى النظام
+        </button>
+
+        <div id="loginError" class="login-error"></div>
+
+        <div class="login-footer">
+            RESPECT CFW © 2026
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     النظام الرئيسي
+========================= -->
+
+<div id="app" class="app hidden">
+
+    <!-- الشريط العلوي -->
+
+    <header class="topbar">
+
+        <div class="topbar-brand">
+
+            <div class="mini-logo">
+                RPD
+            </div>
+
+            <div>
+                <strong>RESPECT CFW</strong>
+                <span>R.P.D MDT</span>
+            </div>
+
+        </div>
+
+
+        <div class="system-status">
+
+            <span class="status-dot"></span>
+
+            النظام متصل
+
+        </div>
+
+
+        <div class="user-area">
+
+            <span id="currentUserName">
+                المستخدم
+            </span>
+
+            <span id="currentUserRank">
+                الرتبة
+            </span>
+
+            <button onclick="logout()" class="logout-btn">
+                تسجيل الخروج
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- المحتوى -->
+
+    <div class="layout">
+
+
+        <!-- =========================
+             القائمة الجانبية
+        ========================= -->
+
+        <aside class="sidebar">
+
+            <div class="sidebar-title">
+                مركز القيادة
+            </div>
+
+
+            <button
+                class="nav-btn active"
+                onclick="openPage('dashboard')"
+            >
+                🏠
+                <span>لوحة القيادة</span>
+            </button>
+
+
+            <button
+                class="nav-btn"
+                onclick="openPage('citizens')"
+            >
+                👤
+                <span>المواطنون</span>
+            </button>
+
+
+            <button
+                class="nav-btn"
+                onclick="openPage('officers')"
+            >
+                👮
+                <span>الضباط</span>
+            </button>
+
+
+            <button
+                class="nav-btn"
+                onclick="openPage('vehicles')"
+            >
+                🚔
+                <span>المركبات</span>
+            </button>
+
+
+            <button
+                class="nav-btn"
+                onclick="openPage('reports')"
+            >
+                📋
+                <span>التقارير</span>
+            </button>
+
+
+            <button
+                class="nav-btn"
+                onclick="openPage('calls')"
+            >
+                🚨
+                <span>البلاغات</span>
+            </button>
+
+
+            <button
+                class="nav-btn"
+                onclick="openPage('wanted')"
+            >
+                🔎
+                <span>المطلوبون</span>
+            </button>
+
+
+            <button
+                class="nav-btn"
+                onclick="openPage('warrants')"
+            >
+                📜
+                <span>المذكرات</span>
+            </button>
+
+
+            <button
+                class="nav-btn"
+                onclick="openPage('tickets')"
+            >
+                ⚠️
+                <span>المخالفات</span>
+            </button>
+
+
+            <button
+                class="nav-btn"
+                onclick="openPage('records')"
+            >
+                🗃️
+                <span>السجلات الجنائية</span>
+            </button>
+
+
+            <button
+                class="nav-btn"
+                onclick="openPage('operations')"
+            >
+                🎯
+                <span>العمليات</span>
+            </button>
+
+
+            <button
+                class="nav-btn"
+                onclick="openPage('notifications')"
+            >
+                🔔
+                <span>الإشعارات</span>
+            </button>
+
+
+            <div class="sidebar-title">
+                الإدارة
+            </div>
+
+
+            <button
+                class="nav-btn"
+                onclick="openPage('database')"
+            >
+                🗄️
+                <span>قاعدة البيانات</span>
+            </button>
+
+
+            <button
+                class="nav-btn"
+                onclick="openPage('users')"
+            >
+                👥
+                <span>إدارة المستخدمين</span>
+            </button>
+
+
+            <button
+                class="nav-btn"
+                onclick="openPage('ranks')"
+            >
+                🎖️
+                <span>إدارة الرتب</span>
+            </button>
+
+
+            <button
+                class="nav-btn"
+                onclick="openPage('settings')"
+            >
+                ⚙️
+                <span>الإعدادات</span>
+            </button>
+
+
+        </aside>
+
+
+        <!-- =========================
+             منطقة الصفحات
+        ========================= -->
+
+        <main class="main-content">
+
+
+            <!-- DASHBOARD -->
+
+            <section id="dashboard" class="page active-page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>لوحة القيادة</h1>
+
+                        <p>
+                            مرحباً بك في نظام بيانات شرطة R.P.D
+                        </p>
+                    </div>
+
+                    <div class="current-date" id="currentDate"></div>
+
+                </div>
+
+
+                <div class="stats-grid">
+
+                    <div class="stat-card">
+                        <div class="stat-icon">👮</div>
+                        <div>
+                            <span>الضباط المتصلون</span>
+                            <strong id="onlineOfficers">0</strong>
+                        </div>
+                    </div>
+
+
+                    <div class="stat-card">
+                        <div class="stat-icon">👤</div>
+                        <div>
+                            <span>المواطنون</span>
+                            <strong id="citizensCount">0</strong>
+                        </div>
+                    </div>
+
+
+                    <div class="stat-card">
+                        <div class="stat-icon">🚔</div>
+                        <div>
+                            <span>المركبات</span>
+                            <strong id="vehiclesCount">0</strong>
+                        </div>
+                    </div>
+
+
+                    <div class="stat-card">
+                        <div class="stat-icon">🚨</div>
+                        <div>
+                            <span>البلاغات النشطة</span>
+                            <strong id="activeCalls">0</strong>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="dashboard-grid">
+
+                    <div class="panel">
+
+                        <div class="panel-header">
+                            <h2>آخر النشاطات</h2>
+
+                            <button onclick="openPage('reports')">
+                                عرض الكل
+                            </button>
+                        </div>
+
+                        <div id="activityList" class="activity-list">
+                        </div>
+
+                    </div>
+
+
+                    <div class="panel">
+
+                        <div class="panel-header">
+                            <h2>حالة النظام</h2>
+                        </div>
+
+                        <div class="system-info">
+
+                            <div>
+                                <span>حالة الخادم</span>
+                                <strong class="online-text">
+                                    متصل
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>قاعدة البيانات</span>
+                                <strong class="online-text">
+                                    تعمل
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>نظام الحماية</span>
+                                <strong class="online-text">
+                                    نشط
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>الإصدار</span>
+                                <strong>
+                                    R.P.D MDT
+                                </strong>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- CITIZENS -->
+
+            <section id="citizens" class="page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>المواطنون</h1>
+
+                        <p>
+                            البحث وإدارة ملفات المواطنين
+                        </p>
+                    </div>
+
+                    <button
+                        class="primary-btn"
+                        onclick="openCitizenModal()"
+                    >
+                        + إضافة مواطن
+                    </button>
+
+                </div>
+
+
+                <div class="search-panel">
+
+                    <input
+                        id="citizenSearch"
+                        type="text"
+                        placeholder="ابحث بالاسم أو رقم المواطن..."
+                        oninput="searchCitizens()"
+                    >
+
+                </div>
+
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>رقم المواطن</th>
+                                <th>الاسم الكامل</th>
+                                <th>العمر</th>
+                                <th>الهاتف</th>
+                                <th>حالة الرخصة</th>
+                                <th>الإجراء</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="citizensTable">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- OFFICERS -->
+
+            <section id="officers" class="page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>الضباط</h1>
+
+                        <p>
+                            إدارة أفراد شرطة R.P.D
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>رقم الشارة</th>
+                                <th>الاسم</th>
+                                <th>الرتبة</th>
+                                <th>القسم</th>
+                                <th>الحالة</th>
+                                <th>الصلاحيات</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="officersTable">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- VEHICLES -->
+
+            <section id="vehicles" class="page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>المركبات</h1>
+
+                        <p>
+                            قاعدة بيانات المركبات
+                        </p>
+                    </div>
+
+                    <button
+                        class="primary-btn"
+                        onclick="openVehicleModal()"
+                    >
+                        + تسجيل مركبة
+                    </button>
+
+                </div>
+
+
+                <div class="search-panel">
+
+                    <input
+                        id="vehicleSearch"
+                        type="text"
+                        placeholder="ابحث برقم اللوحة أو اسم المالك..."
+                        oninput="searchVehicles()"
+                    >
+
+                </div>
+
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>رقم اللوحة</th>
+                                <th>نوع المركبة</th>
+                                <th>اللون</th>
+                                <th>المالك</th>
+                                <th>الحالة</th>
+                                <th>الإجراء</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="vehiclesTable">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- REPORTS -->
+
+            <section id="reports" class="page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>التقارير</h1>
+
+                        <p>
+                            تقارير الشرطة والسجلات الميدانية
+                        </p>
+                    </div>
+
+                    <button
+                        class="primary-btn"
+                        onclick="openReportModal()"
+                    >
+                        + إنشاء تقرير
+                    </button>
+
+                </div>
+
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>رقم التقرير</th>
+                                <th>النوع</th>
+                                <th>الضابط</th>
+                                <th>التاريخ</th>
+                                <th>الحالة</th>
+                                <th>الإجراء</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="reportsTable">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- CALLS -->
+
+            <section id="calls" class="page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>البلاغات</h1>
+
+                        <p>
+                            مركز استقبال وإدارة البلاغات
+                        </p>
+                    </div>
+
+                    <button
+                        class="danger-btn"
+                        onclick="openCallModal()"
+                    >
+                        + بلاغ جديد
+                    </button>
+
+                </div>
+
+
+                <div id="callsContainer" class="cards-container">
+                </div>
+
+            </section>
+
+
+            <!-- WANTED -->
+
+            <section id="wanted" class="page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>المطلوبون</h1>
+
+                        <p>
+                            قائمة الأشخاص المطلوبين
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>رقم الملف</th>
+                                <th>الاسم</th>
+                                <th>درجة الخطورة</th>
+                                <th>سبب البحث</th>
+                                <th>تاريخ الإضافة</th>
+                                <th>الحالة</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="wantedTable">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- WARRANTS -->
+
+            <section id="warrants" class="page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>المذكرات</h1>
+
+                        <p>
+                            أوامر ومذكرات البحث
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>رقم المذكرة</th>
+                                <th>الشخص</th>
+                                <th>النوع</th>
+                                <th>الجهة</th>
+                                <th>التاريخ</th>
+                                <th>الحالة</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="warrantsTable">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- TICKETS -->
+
+            <section id="tickets" class="page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>المخالفات</h1>
+
+                        <p>
+                            سجل المخالفات المرورية والقانونية
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>رقم المخالفة</th>
+                                <th>المواطن</th>
+                                <th>نوع المخالفة</th>
+                                <th>الغرامة</th>
+                                <th>الضابط</th>
+                                <th>التاريخ</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="ticketsTable">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- CRIMINAL RECORDS -->
+
+            <section id="records" class="page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>السجلات الجنائية</h1>
+
+                        <p>
+                            السجل الجنائي للمواطنين
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="search-panel">
+
+                    <input
+                        type="text"
+                        id="recordSearch"
+                        placeholder="البحث في السجلات..."
+                    >
+
+                </div>
+
+
+                <div id="recordsContainer">
+                </div>
+
+            </section>
+
+
+            <!-- OPERATIONS -->
+
+            <section id="operations" class="page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>العمليات</h1>
+
+                        <p>
+                            إدارة العمليات الأمنية
+                        </p>
+                    </div>
+
+                    <button
+                        class="primary-btn"
+                        onclick="createOperation()"
+                    >
+                        + عملية جديدة
+                    </button>
+
+                </div>
+
+
+                <div id="operationsContainer" class="cards-container">
+                </div>
+
+            </section>
+
+
+            <!-- NOTIFICATIONS -->
+
+            <section id="notifications" class="page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>الإشعارات</h1>
+
+                        <p>
+                            آخر إشعارات النظام
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div id="notificationsContainer">
+                </div>
+
+            </section>
+
+
+            <!-- DATABASE -->
+
+            <section id="database" class="page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>قاعدة البيانات</h1>
+
+                        <p>
+                            مركز إدارة بيانات R.P.D
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="stats-grid">
+
+                    <div class="stat-card">
+                        <span>المواطنون</span>
+                        <strong id="dbCitizens">0</strong>
+                    </div>
+
+                    <div class="stat-card">
+                        <span>الضباط</span>
+                        <strong id="dbOfficers">0</strong>
+                    </div>
+
+                    <div class="stat-card">
+                        <span>المركبات</span>
+                        <strong id="dbVehicles">0</strong>
+                    </div>
+
+                    <div class="stat-card">
+                        <span>التقارير</span>
+                        <strong id="dbReports">0</strong>
+                    </div>
+
+                </div>
+
+
+                <div class="panel">
+
+                    <h2>إدارة البيانات</h2>
+
+                    <div class="database-actions">
+
+                        <button onclick="exportDatabase()">
+                            تصدير قاعدة البيانات
+                        </button>
+
+                        <button onclick="resetDatabase()">
+                            إعادة ضبط البيانات
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- USERS -->
+
+            <section id="users" class="page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>إدارة المستخدمين</h1>
+
+                        <p>
+                            حسابات مستخدمي نظام MDT
+                        </p>
+                    </div>
+
+                    <button
+                        class="primary-btn"
+                        onclick="openUserModal()"
+                    >
+                        + مستخدم جديد
+                    </button>
+
+                </div>
+
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>المعرف</th>
+                                <th>اسم المستخدم</th>
+                                <th>الاسم</th>
+                                <th>الرتبة</th>
+                                <th>الحالة</th>
+                                <th>الإجراء</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="usersTable">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- RANKS -->
+
+            <section id="ranks" class="page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>إدارة الرتب</h1>
+
+                        <p>
+                            نظام الرتب من 0 إلى 100
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="ranks-grid" id="ranksContainer">
+                </div>
+
+            </section>
+
+
+            <!-- SETTINGS -->
+
+            <section id="settings" class="page">
+
+                <div class="page-header">
+
+                    <div>
+                        <h1>الإعدادات</h1>
+
+                        <p>
+                            إعدادات نظام RESPECT CFW MDT
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="settings-panel">
+
+                    <div class="setting-item">
+
+                        <div>
+                            <strong>الوضع الداكن</strong>
+                            <p>
+                                استخدام الواجهة الداكنة للنظام
+                            </p>
+                        </div>
+
+                        <button onclick="toggleTheme()">
+                            تبديل الوضع
+                        </button>
+
+                    </div>
+
+
+                    <div class="setting-item">
+
+                        <div>
+                            <strong>الإشعارات</strong>
+                            <p>
+                                تفعيل إشعارات النظام
+                            </p>
+                        </div>
+
+                        <button onclick="toggleNotifications()">
+                            تفعيل / تعطيل
+                        </button>
+
+                    </div>
+
+
+                    <div class="setting-item">
+
+                        <div>
+                            <strong>هوية النظام</strong>
+                            <p>
+                                RESPECT CFW — R.P.D
+                            </p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+        </main>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     نافذة المواطن
+========================= -->
+
+<div id="citizenModal" class="modal hidden">
+
+    <div class="modal-box">
+
+        <div class="modal-header">
+
+            <h2>إضافة مواطن</h2>
+
+            <button onclick="closeModal('citizenModal')">
+                ×
+            </button>
+
+        </div>
+
+
+        <input
+            id="newCitizenName"
+            type="text"
+            placeholder="الاسم الكامل"
+        >
+
+        <input
+            id="newCitizenAge"
+            type="number"
+            placeholder="العمر"
+        >
+
+        <input
+            id="newCitizenPhone"
+            type="text"
+            placeholder="رقم الهاتف"
+        >
+
+
+        <button
+            class="primary-btn full"
+            onclick="addCitizen()"
+        >
+            حفظ المواطن
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     نافذة المركبة
+========================= -->
+
+<div id="vehicleModal" class="modal hidden">
+
+    <div class="modal-box">
+
+        <div class="modal-header">
+
+            <h2>تسجيل مركبة</h2>
+
+            <button onclick="closeModal('vehicleModal')">
+                ×
+            </button>
+
+        </div>
+
+
+        <input
+            id="newVehiclePlate"
+            type="text"
+            placeholder="رقم اللوحة"
+        >
+
+        <input
+            id="newVehicleModel"
+            type="text"
+            placeholder="نوع المركبة"
+        >
+
+        <input
+            id="newVehicleColor"
+            type="text"
+            placeholder="اللون"
+        >
+
+        <input
+            id="newVehicleOwner"
+            type="text"
+            placeholder="اسم المالك"
+        >
+
+
+        <button
+            class="primary-btn full"
+            onclick="addVehicle()"
+        >
+            تسجيل المركبة
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     نافذة التقرير
+========================= -->
+
+<div id="reportModal" class="modal hidden">
+
+    <div class="modal-box">
+
+        <div class="modal-header">
+
+            <h2>إنشاء تقرير</h2>
+
+            <button onclick="closeModal('reportModal')">
+                ×
+            </button>
+
+        </div>
+
+
+        <select id="reportType">
+
+            <option value="حادث">
+                حادث
+            </option>
+
+            <option value="اعتقال">
+                اعتقال
+            </option>
+
+            <option value="دورية">
+                دورية
+            </option>
+
+            <option value="تحقيق">
+                تحقيق
+            </option>
+
+            <option value="أخرى">
+                أخرى
+            </option>
+
+        </select>
+
+
+        <textarea
+            id="reportDescription"
+            placeholder="اكتب تفاصيل التقرير..."
+        ></textarea>
+
+
+        <button
+            class="primary-btn full"
+            onclick="addReport()"
+        >
+            حفظ التقرير
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     نافذة البلاغ
+========================= -->
+
+<div id="callModal" class="modal hidden">
+
+    <div class="modal-box">
+
+        <div class="modal-header">
+
+            <h2>بلاغ جديد</h2>
+
+            <button onclick="closeModal('callModal')">
+                ×
+            </button>
+
+        </div>
+
+
+        <input
+            id="callLocation"
+            type="text"
+            placeholder="موقع البلاغ"
+        >
+
+
+        <select id="callPriority">
+
+            <option value="منخفضة">
+                أولوية منخفضة
+            </option>
+
+            <option value="متوسطة">
+                أولوية متوسطة
+            </option>
+
+            <option value="عالية">
+                أولوية عالية
+            </option>
+
+            <option value="طارئة">
+                حالة طارئة
+            </option>
+
+        </select>
+
+
+        <textarea
+            id="callDescription"
+            placeholder="وصف البلاغ..."
+        ></textarea>
+
+
+        <button
+            class="danger-btn full"
+            onclick="addCall()"
+        >
+            إرسال البلاغ
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     JavaScript
+========================= -->
+
+<script src="database.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
