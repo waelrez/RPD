@@ -1,793 +1,805 @@
 ```javascript
 /* =========================================================
    RESPECT CFW — R.P.D MDT
-   قاعدة البيانات المحلية
-========================================================= */
+   DATABASE.JS
+   Version corrigée / compatible avec app.js
+   ========================================================= */
+
+"use strict";
+
+/* =========================================================
+   DATABASE CONFIG
+   ========================================================= */
 
 const RPD_DATABASE_KEY = "RESPECT_CFW_RPD_DATABASE";
 
+
 /* =========================================================
-   الرتب 0 → 100
-========================================================= */
+   RANKS
+   ========================================================= */
 
 const RPD_RANKS = [
-
     {
         level: 0,
-        name: "مواطن",
-        permissions: ["عرض الملف الشخصي"]
+        name: "Citoyen",
+        permissions: []
     },
-
     {
         level: 1,
-        name: "متدرب شرطة",
-        permissions: ["عرض بيانات أساسية"]
+        name: "Cadet",
+        permissions: ["dashboard"]
     },
-
     {
         level: 5,
-        name: "شرطي مستجد",
-        permissions: [
-            "البحث عن المواطنين",
-            "البحث عن المركبات"
-        ]
+        name: "Agent Stagiaire",
+        permissions: ["dashboard", "citizens", "calls"]
     },
-
     {
         level: 10,
-        name: "شرطي",
+        name: "Officier",
         permissions: [
-            "البحث عن المواطنين",
-            "البحث عن المركبات",
-            "إنشاء التقارير",
-            "استقبال البلاغات"
+            "dashboard",
+            "citizens",
+            "officers",
+            "vehicles",
+            "reports",
+            "calls",
+            "wanted",
+            "warrants",
+            "tickets",
+            "records",
+            "operations",
+            "notifications"
         ]
     },
-
     {
         level: 20,
-        name: "شرطي أول",
+        name: "Officier Senior",
         permissions: [
-            "إدارة التقارير",
-            "إدارة البلاغات",
-            "البحث المتقدم"
+            "dashboard",
+            "citizens",
+            "officers",
+            "vehicles",
+            "reports",
+            "calls",
+            "wanted",
+            "warrants",
+            "tickets",
+            "records",
+            "operations",
+            "notifications"
         ]
     },
-
     {
         level: 30,
-        name: "عريف",
+        name: "Sergent",
         permissions: [
-            "إدارة الدوريات",
-            "مراجعة التقارير"
+            "dashboard",
+            "citizens",
+            "officers",
+            "vehicles",
+            "reports",
+            "calls",
+            "wanted",
+            "warrants",
+            "tickets",
+            "records",
+            "operations",
+            "notifications"
         ]
     },
-
     {
         level: 40,
-        name: "رقيب",
+        name: "Sergent-Chef",
         permissions: [
-            "إدارة الضباط التابعين",
-            "اعتماد التقارير",
-            "إدارة العمليات"
+            "dashboard",
+            "citizens",
+            "officers",
+            "vehicles",
+            "reports",
+            "calls",
+            "wanted",
+            "warrants",
+            "tickets",
+            "records",
+            "operations",
+            "notifications"
         ]
     },
-
     {
         level: 50,
-        name: "رقيب أول",
+        name: "Lieutenant",
         permissions: [
-            "إدارة الوحدات",
-            "إدارة العمليات",
-            "مراجعة السجلات"
+            "dashboard",
+            "citizens",
+            "officers",
+            "vehicles",
+            "reports",
+            "calls",
+            "wanted",
+            "warrants",
+            "tickets",
+            "records",
+            "operations",
+            "notifications",
+            "users"
         ]
     },
-
     {
         level: 60,
-        name: "ملازم",
+        name: "Capitaine",
         permissions: [
-            "إدارة قسم",
-            "إدارة الضباط",
-            "إدارة العمليات",
-            "إدارة البلاغات"
+            "dashboard",
+            "citizens",
+            "officers",
+            "vehicles",
+            "reports",
+            "calls",
+            "wanted",
+            "warrants",
+            "tickets",
+            "records",
+            "operations",
+            "notifications",
+            "users"
         ]
     },
-
     {
         level: 70,
-        name: "نقيب",
+        name: "Commandant",
         permissions: [
-            "إدارة الأقسام",
-            "إدارة الضباط",
-            "إدارة العمليات",
-            "إدارة السجلات"
+            "dashboard",
+            "citizens",
+            "officers",
+            "vehicles",
+            "reports",
+            "calls",
+            "wanted",
+            "warrants",
+            "tickets",
+            "records",
+            "operations",
+            "notifications",
+            "users",
+            "ranks"
         ]
     },
-
     {
         level: 80,
-        name: "رائد",
+        name: "Colonel",
         permissions: [
-            "إدارة القيادة",
-            "إدارة المستخدمين",
-            "إدارة الأقسام",
-            "إدارة العمليات"
+            "dashboard",
+            "citizens",
+            "officers",
+            "vehicles",
+            "reports",
+            "calls",
+            "wanted",
+            "warrants",
+            "tickets",
+            "records",
+            "operations",
+            "notifications",
+            "users",
+            "ranks"
         ]
     },
-
     {
         level: 85,
-        name: "مقدم",
+        name: "Colonel-Chef",
         permissions: [
-            "إدارة القيادة",
-            "إدارة المستخدمين",
-            "إدارة الرتب",
-            "إدارة قاعدة البيانات"
+            "dashboard",
+            "citizens",
+            "officers",
+            "vehicles",
+            "reports",
+            "calls",
+            "wanted",
+            "warrants",
+            "tickets",
+            "records",
+            "operations",
+            "notifications",
+            "users",
+            "ranks"
         ]
     },
-
     {
         level: 90,
-        name: "عقيد",
+        name: "Général",
         permissions: [
-            "صلاحيات القيادة العليا",
-            "إدارة المستخدمين",
-            "إدارة الرتب",
-            "إدارة قاعدة البيانات"
+            "dashboard",
+            "citizens",
+            "officers",
+            "vehicles",
+            "reports",
+            "calls",
+            "wanted",
+            "warrants",
+            "tickets",
+            "records",
+            "operations",
+            "notifications",
+            "users",
+            "ranks",
+            "database"
         ]
     },
-
     {
         level: 95,
-        name: "عميد",
+        name: "Général de Division",
         permissions: [
-            "القيادة العليا",
-            "الإدارة الكاملة"
+            "dashboard",
+            "citizens",
+            "officers",
+            "vehicles",
+            "reports",
+            "calls",
+            "wanted",
+            "warrants",
+            "tickets",
+            "records",
+            "operations",
+            "notifications",
+            "users",
+            "ranks",
+            "database"
         ]
     },
-
     {
         level: 99,
-        name: "نائب قائد الشرطة",
+        name: "Directeur Général",
         permissions: [
-            "إدارة النظام",
-            "إدارة القيادة",
-            "إدارة المستخدمين",
-            "إدارة الرتب",
-            "إدارة قاعدة البيانات"
+            "dashboard",
+            "citizens",
+            "officers",
+            "vehicles",
+            "reports",
+            "calls",
+            "wanted",
+            "warrants",
+            "tickets",
+            "records",
+            "operations",
+            "notifications",
+            "users",
+            "ranks",
+            "database",
+            "settings"
         ]
     },
-
     {
         level: 100,
-        name: "قائد الشرطة",
+        name: "Chef de la Police",
         permissions: [
-            "صلاحية كاملة للنظام",
-            "إدارة جميع المستخدمين",
-            "إدارة جميع الرتب",
-            "إدارة قاعدة البيانات",
-            "إدارة القيادة"
+            "dashboard",
+            "citizens",
+            "officers",
+            "vehicles",
+            "reports",
+            "calls",
+            "wanted",
+            "warrants",
+            "tickets",
+            "records",
+            "operations",
+            "notifications",
+            "users",
+            "ranks",
+            "database",
+            "settings"
         ]
     }
-
 ];
 
 
 /* =========================================================
-   الحسابات
-========================================================= */
+   DEFAULT USERS
+   ========================================================= */
 
 const DEFAULT_USERS = [
-
     {
         id: "USR-0001",
         username: "chief",
         password: "1234",
-
         name: "قائد الشرطة",
         badge: "RPD-0001",
-
         rankLevel: 100,
-        department: "القيادة العامة",
 
-        status: "متصل"
+        // Compatibility avec app.js
+        rank: 100,
+
+        department: "القيادة العامة",
+        status: "active",
+        createdAt: new Date().toISOString()
     },
 
     {
         id: "USR-0002",
         username: "commander",
         password: "1234",
-
-        name: "مدير العمليات",
-        badge: "RPD-0090",
-
+        name: "قائد العمليات",
+        badge: "RPD-0002",
         rankLevel: 90,
-        department: "العمليات",
 
-        status: "متصل"
+        // Compatibility avec app.js
+        rank: 90,
+
+        department: "العمليات",
+        status: "active",
+        createdAt: new Date().toISOString()
     },
 
     {
         id: "USR-0003",
         username: "officer",
         password: "1234",
-
-        name: "محمد العلوي",
-        badge: "RPD-1025",
-
+        name: "ضابط الشرطة",
+        badge: "RPD-0010",
         rankLevel: 10,
-        department: "الدوريات",
 
-        status: "متصل"
+        // Compatibility avec app.js
+        rank: 10,
+
+        department: "دوريات الشرطة",
+        status: "active",
+        createdAt: new Date().toISOString()
     }
-
 ];
 
 
 /* =========================================================
-   المواطنون
-========================================================= */
+   DEFAULT CITIZENS
+   ========================================================= */
 
 const DEFAULT_CITIZENS = [
-
     {
-        id: "CIT-1001",
-        name: "ياسين بنعلي",
-        age: 28,
-        phone: "0600000001",
-
-        license: "سارية",
-
-        address: "المدينة المركزية",
-
-        criminalRecord: false,
-
-        notes: ""
-    },
-
-    {
-        id: "CIT-1002",
-        name: "سامي الإدريسي",
-        age: 34,
-        phone: "0600000002",
-
-        license: "سارية",
-
-        address: "المنطقة الشمالية",
-
-        criminalRecord: true,
-
-        notes: "لديه سجل سابق"
-    },
-
-    {
-        id: "CIT-1003",
-        name: "أمين المرابط",
-        age: 22,
-        phone: "0600000003",
-
-        license: "منتهية",
-
-        address: "المنطقة الشرقية",
-
-        criminalRecord: false,
-
-        notes: ""
+        id: "CIT-0001",
+        firstName: "محمد",
+        lastName: "العربي",
+        dob: "1995-04-12",
+        gender: "ذكر",
+        phone: "0600000000",
+        address: "Los Santos",
+        status: "clean",
+        notes: "",
+        createdAt: new Date().toISOString()
     }
-
 ];
 
 
 /* =========================================================
-   الضباط
-========================================================= */
+   DEFAULT OFFICERS
+   ========================================================= */
 
 const DEFAULT_OFFICERS = [
-
     {
+        id: "OFF-0001",
         badge: "RPD-0001",
-
         name: "قائد الشرطة",
-
         rankLevel: 100,
 
+        // Compatibility avec app.js
+        rank: 100,
+
         department: "القيادة العامة",
-
-        status: "متصل",
-
-        service: "قيادة"
+        status: "active",
+        phone: "",
+        notes: "",
+        createdAt: new Date().toISOString()
     },
 
     {
-        badge: "RPD-0090",
-
-        name: "مدير العمليات",
-
+        id: "OFF-0002",
+        badge: "RPD-0002",
+        name: "قائد العمليات",
         rankLevel: 90,
 
+        // Compatibility avec app.js
+        rank: 90,
+
         department: "العمليات",
-
-        status: "متصل",
-
-        service: "قيادة"
+        status: "active",
+        phone: "",
+        notes: "",
+        createdAt: new Date().toISOString()
     },
 
     {
-        badge: "RPD-1025",
-
-        name: "محمد العلوي",
-
+        id: "OFF-0003",
+        badge: "RPD-0010",
+        name: "ضابط الشرطة",
         rankLevel: 10,
 
-        department: "الدوريات",
+        // Compatibility avec app.js
+        rank: 10,
 
-        status: "متصل",
-
-        service: "دورية"
-    },
-
-    {
-        badge: "RPD-1042",
-
-        name: "عمر السالمي",
-
-        rankLevel: 20,
-
-        department: "المرور",
-
-        status: "غير متصل",
-
-        service: "مرور"
+        department: "دوريات الشرطة",
+        status: "active",
+        phone: "",
+        notes: "",
+        createdAt: new Date().toISOString()
     }
-
 ];
 
 
 /* =========================================================
-   المركبات
-========================================================= */
+   DEFAULT VEHICLES
+   ========================================================= */
 
 const DEFAULT_VEHICLES = [
-
     {
+        id: "VEH-0001",
         plate: "RPD-01",
-        model: "دورية الشرطة",
-        color: "أبيض وأسود",
-        owner: "شرطة R.P.D",
-        status: "نشطة"
-    },
-
-    {
-        plate: "RPD-02",
-        model: "سيارة دورية",
-        color: "أسود",
-        owner: "شرطة R.P.D",
-        status: "نشطة"
-    },
-
-    {
-        plate: "ABC-245",
-        model: "مركبة مدنية",
-        color: "رمادي",
-        owner: "ياسين بنعلي",
-        status: "سليمة"
-    },
-
-    {
-        plate: "XYZ-731",
-        model: "مركبة مدنية",
-        color: "أزرق",
-        owner: "سامي الإدريسي",
-        status: "مطلوبة للفحص"
+        model: "Police Cruiser",
+        type: "Patrol",
+        status: "available",
+        assignedTo: "",
+        location: "Commissariat Central",
+        notes: "",
+        createdAt: new Date().toISOString()
     }
-
 ];
 
 
 /* =========================================================
-   التقارير
-========================================================= */
+   DEFAULT REPORTS
+   ========================================================= */
 
 const DEFAULT_REPORTS = [
-
     {
         id: "REP-0001",
-
-        type: "دورية",
-
-        officer: "RPD-1025",
-
-        date: "2026-09-23",
-
-        status: "مغلق",
-
-        description:
-            "تم تنفيذ دورية اعتيادية في المنطقة المركزية."
-    },
-
-    {
-        id: "REP-0002",
-
-        type: "تحقيق",
-
-        officer: "RPD-0090",
-
-        date: "2026-09-23",
-
-        status: "قيد المراجعة",
-
-        description:
-            "ملف تحقيق مفتوح للمراجعة."
+        title: "Rapport initial",
+        type: "Général",
+        officer: "قائد الشرطة",
+        status: "open",
+        description: "Rapport système initial.",
+        createdAt: new Date().toISOString()
     }
-
 ];
 
 
 /* =========================================================
-   البلاغات
-========================================================= */
+   DEFAULT CALLS
+   ========================================================= */
 
 const DEFAULT_CALLS = [
-
     {
-        id: "CALL-001",
-
-        location: "المنطقة المركزية",
-
-        priority: "عالية",
-
-        description:
-            "بلاغ يحتاج إلى استجابة دورية.",
-
-        status: "نشط",
-
-        createdAt: "2026-09-23 16:20",
-
-        assignedOfficer: "RPD-1025"
-    },
-
-    {
-        id: "CALL-002",
-
-        location: "المنطقة الشمالية",
-
-        priority: "متوسطة",
-
-        description:
-            "بلاغ مروري.",
-
-        status: "نشط",
-
-        createdAt: "2026-09-23 16:45",
-
-        assignedOfficer: ""
+        id: "CALL-0001",
+        type: "Patrouille",
+        priority: "normal",
+        location: "Commissariat Central",
+        description: "Appel système initial.",
+        status: "closed",
+        assignedTo: "",
+        createdAt: new Date().toISOString()
     }
-
 ];
 
 
 /* =========================================================
-   المطلوبون
-========================================================= */
+   DEFAULT WANTED
+   ========================================================= */
 
 const DEFAULT_WANTED = [
-
     {
-        id: "WNT-001",
-
-        name: "سجل تجريبي",
-
-        danger: "متوسطة",
-
-        reason: "تحقيق مفتوح",
-
-        date: "2026-09-22",
-
-        status: "مطلوب"
+        id: "WTD-0001",
+        citizenId: "",
+        name: "Aucune personne recherchée",
+        reason: "",
+        level: "low",
+        status: "inactive",
+        createdAt: new Date().toISOString()
     }
-
 ];
 
 
 /* =========================================================
-   المذكرات
-========================================================= */
+   DEFAULT WARRANTS
+   ========================================================= */
 
 const DEFAULT_WARRANTS = [
-
     {
-        id: "WAR-001",
-
-        person: "سجل تجريبي",
-
-        type: "مذكرة بحث",
-
-        authority: "إدارة التحقيقات",
-
-        date: "2026-09-22",
-
-        status: "سارية"
+        id: "WAR-0001",
+        citizenId: "",
+        name: "",
+        reason: "",
+        issuedBy: "قائد الشرطة",
+        status: "active",
+        createdAt: new Date().toISOString()
     }
-
 ];
 
 
 /* =========================================================
-   المخالفات
-========================================================= */
+   DEFAULT TICKETS
+   ========================================================= */
 
 const DEFAULT_TICKETS = [
-
     {
-        id: "TIC-001",
-
-        citizen: "ياسين بنعلي",
-
-        type: "تجاوز السرعة",
-
-        fine: 500,
-
-        officer: "RPD-1025",
-
-        date: "2026-09-21"
-    },
-
-    {
-        id: "TIC-002",
-
-        citizen: "أمين المرابط",
-
-        type: "وقوف غير قانوني",
-
-        fine: 300,
-
-        officer: "RPD-1042",
-
-        date: "2026-09-22"
+        id: "TKT-0001",
+        citizenId: "",
+        citizenName: "",
+        officer: "قائد الشرطة",
+        reason: "",
+        amount: 0,
+        status: "paid",
+        createdAt: new Date().toISOString()
     }
-
 ];
 
 
 /* =========================================================
-   السجلات الجنائية
-========================================================= */
+   DEFAULT RECORDS
+   ========================================================= */
 
 const DEFAULT_RECORDS = [
-
     {
-        id: "REC-001",
-
-        citizen: "سامي الإدريسي",
-
-        citizenId: "CIT-1002",
-
-        category: "سجل سابق",
-
-        description:
-            "بيانات تجريبية للسجل الجنائي.",
-
-        date: "2026-08-14",
-
-        status: "مسجل"
+        id: "REC-0001",
+        citizenId: "",
+        citizenName: "",
+        type: "system",
+        title: "Enregistrement système",
+        description: "",
+        officer: "قائد الشرطة",
+        createdAt: new Date().toISOString()
     }
-
 ];
 
 
 /* =========================================================
-   العمليات
-========================================================= */
+   DEFAULT OPERATIONS
+   ========================================================= */
 
 const DEFAULT_OPERATIONS = [
-
     {
-        id: "OP-001",
-
-        name: "عملية الدوريات المركزية",
-
-        location: "المنطقة المركزية",
-
-        commander: "RPD-0090",
-
-        units: 4,
-
-        status: "نشطة",
-
-        start: "2026-09-23 15:00"
+        id: "OP-0001",
+        name: "Opération RPD",
+        type: "General",
+        status: "planned",
+        commander: "قائد الشرطة",
+        location: "Los Santos",
+        description: "Opération système initiale.",
+        createdAt: new Date().toISOString()
     }
-
 ];
 
 
 /* =========================================================
-   الإشعارات
-========================================================= */
+   DEFAULT NOTIFICATIONS
+   ========================================================= */
 
 const DEFAULT_NOTIFICATIONS = [
-
     {
-        id: "NOT-001",
-
-        title: "النظام",
-
-        message:
-            "تم تشغيل نظام RESPECT CFW — R.P.D MDT.",
-
-        type: "نظام",
-
-        date: "2026-09-23 17:00",
-
-        read: false
-    },
-
-    {
-        id: "NOT-002",
-
-        title: "بلاغ جديد",
-
-        message:
-            "يوجد بلاغ جديد يحتاج إلى استجابة.",
-
-        type: "بلاغ",
-
-        date: "2026-09-23 16:45",
-
-        read: false
+        id: "NOT-0001",
+        title: "Bienvenue",
+        message: "Bienvenue dans RESPECT CFW — R.P.D MDT.",
+        type: "info",
+        read: false,
+        createdAt: new Date().toISOString()
     }
-
 ];
 
 
 /* =========================================================
-   النشاطات
-========================================================= */
+   DEFAULT ACTIVITIES
+   ========================================================= */
 
-const DEFAULT_ACTIVITIES = [
-
-    {
-        icon: "🚨",
-        text: "تم تسجيل بلاغ جديد",
-        time: "منذ دقائق"
-    },
-
-    {
-        icon: "📋",
-        text: "تم إنشاء تقرير شرطة",
-        time: "منذ 20 دقيقة"
-    },
-
-    {
-        icon: "👮",
-        text: "دخل ضابط إلى النظام",
-        time: "منذ 30 دقيقة"
-    },
-
-    {
-        icon: "🚔",
-        text: "تم تحديث بيانات مركبة",
-        time: "منذ ساعة"
-    }
-
-];
+const DEFAULT_ACTIVITIES = [];
 
 
 /* =========================================================
-   إنشاء قاعدة البيانات
-========================================================= */
+   CLONE HELPER
+   ========================================================= */
+
+function cloneData(data) {
+    return JSON.parse(JSON.stringify(data));
+}
+
+
+/* =========================================================
+   USER NORMALIZATION
+   ========================================================= */
+
+function normalizeUser(user) {
+    if (!user || typeof user !== "object") {
+        return user;
+    }
+
+    const rankLevel = Number(
+        user.rankLevel !== undefined
+            ? user.rankLevel
+            : (user.rank !== undefined ? user.rank : 0)
+    );
+
+    user.rankLevel = Number.isFinite(rankLevel) ? rankLevel : 0;
+
+    // app.js utilise "rank"
+    user.rank = user.rankLevel;
+
+    return user;
+}
+
+
+/* =========================================================
+   OFFICER NORMALIZATION
+   ========================================================= */
+
+function normalizeOfficer(officer) {
+    if (!officer || typeof officer !== "object") {
+        return officer;
+    }
+
+    const rankLevel = Number(
+        officer.rankLevel !== undefined
+            ? officer.rankLevel
+            : (officer.rank !== undefined ? officer.rank : 0)
+    );
+
+    officer.rankLevel = Number.isFinite(rankLevel) ? rankLevel : 0;
+
+    // app.js utilise "rank"
+    officer.rank = officer.rankLevel;
+
+    return officer;
+}
+
+
+/* =========================================================
+   DATABASE CREATION
+   ========================================================= */
 
 function createDefaultDatabase() {
 
     return {
+        version: "1.0.0",
 
-        version: "2026.1",
+        users: cloneData(DEFAULT_USERS),
+
+        citizens: cloneData(DEFAULT_CITIZENS),
+
+        officers: cloneData(DEFAULT_OFFICERS),
+
+        vehicles: cloneData(DEFAULT_VEHICLES),
+
+        reports: cloneData(DEFAULT_REPORTS),
+
+        calls: cloneData(DEFAULT_CALLS),
+
+        wanted: cloneData(DEFAULT_WANTED),
+
+        warrants: cloneData(DEFAULT_WARRANTS),
+
+        tickets: cloneData(DEFAULT_TICKETS),
+
+        records: cloneData(DEFAULT_RECORDS),
+
+        operations: cloneData(DEFAULT_OPERATIONS),
+
+        notifications: cloneData(DEFAULT_NOTIFICATIONS),
+
+        activities: cloneData(DEFAULT_ACTIVITIES),
 
         system: {
             name: "RESPECT CFW",
             department: "R.P.D",
-            title: "محطة البيانات المتنقلة",
-            language: "ar",
-            direction: "rtl"
-        },
-
-        users: JSON.parse(
-            JSON.stringify(DEFAULT_USERS)
-        ),
-
-        citizens: JSON.parse(
-            JSON.stringify(DEFAULT_CITIZENS)
-        ),
-
-        officers: JSON.parse(
-            JSON.stringify(DEFAULT_OFFICERS)
-        ),
-
-        vehicles: JSON.parse(
-            JSON.stringify(DEFAULT_VEHICLES)
-        ),
-
-        reports: JSON.parse(
-            JSON.stringify(DEFAULT_REPORTS)
-        ),
-
-        calls: JSON.parse(
-            JSON.stringify(DEFAULT_CALLS)
-        ),
-
-        wanted: JSON.parse(
-            JSON.stringify(DEFAULT_WANTED)
-        ),
-
-        warrants: JSON.parse(
-            JSON.stringify(DEFAULT_WARRANTS)
-        ),
-
-        tickets: JSON.parse(
-            JSON.stringify(DEFAULT_TICKETS)
-        ),
-
-        records: JSON.parse(
-            JSON.stringify(DEFAULT_RECORDS)
-        ),
-
-        operations: JSON.parse(
-            JSON.stringify(DEFAULT_OPERATIONS)
-        ),
-
-        notifications: JSON.parse(
-            JSON.stringify(DEFAULT_NOTIFICATIONS)
-        ),
-
-        activities: JSON.parse(
-            JSON.stringify(DEFAULT_ACTIVITIES)
-        )
-
+            title: "R.P.D MDT",
+            version: "1.0.0"
+        }
     };
 }
 
 
 /* =========================================================
-   تحميل قاعدة البيانات
-========================================================= */
+   DATABASE NORMALIZATION
+   ========================================================= */
+
+function normalizeDatabase(database) {
+
+    if (!database || typeof database !== "object") {
+        database = createDefaultDatabase();
+    }
+
+    const defaultDatabase = createDefaultDatabase();
+
+    const collections = [
+        "users",
+        "citizens",
+        "officers",
+        "vehicles",
+        "reports",
+        "calls",
+        "wanted",
+        "warrants",
+        "tickets",
+        "records",
+        "operations",
+        "notifications",
+        "activities"
+    ];
+
+    collections.forEach(function(collection) {
+
+        if (!Array.isArray(database[collection])) {
+            database[collection] = cloneData(defaultDatabase[collection]);
+        }
+
+    });
+
+
+    database.users = database.users.map(normalizeUser);
+
+    database.officers = database.officers.map(normalizeOfficer);
+
+
+    if (!database.version) {
+        database.version = "1.0.0";
+    }
+
+
+    if (!database.system || typeof database.system !== "object") {
+        database.system = cloneData(defaultDatabase.system);
+    }
+
+
+    return database;
+}
+
+
+/* =========================================================
+   LOAD DATABASE
+   ========================================================= */
 
 function loadDatabase() {
 
-    const saved = localStorage.getItem(
-        RPD_DATABASE_KEY
-    );
+    try {
 
-    if (!saved) {
+        const stored = localStorage.getItem(RPD_DATABASE_KEY);
 
-        const database =
-            createDefaultDatabase();
+        if (!stored) {
+
+            const database = createDefaultDatabase();
+
+            localStorage.setItem(
+                RPD_DATABASE_KEY,
+                JSON.stringify(database)
+            );
+
+            return database;
+        }
+
+
+        const database = JSON.parse(stored);
+
+        const normalized = normalizeDatabase(database);
 
         localStorage.setItem(
             RPD_DATABASE_KEY,
-            JSON.stringify(database)
+            JSON.stringify(normalized)
         );
 
-        return database;
-    }
-
-    try {
-
-        return JSON.parse(saved);
+        return normalized;
 
     } catch (error) {
 
         console.error(
-            "خطأ في قراءة قاعدة البيانات:",
+            "RPD DATABASE LOAD ERROR:",
             error
         );
 
-        const database =
-            createDefaultDatabase();
+        const database = createDefaultDatabase();
 
-        localStorage.setItem(
-            RPD_DATABASE_KEY,
-            JSON.stringify(database)
-        );
+        try {
+            localStorage.setItem(
+                RPD_DATABASE_KEY,
+                JSON.stringify(database)
+            );
+        } catch (storageError) {
+            console.error(
+                "RPD DATABASE STORAGE ERROR:",
+                storageError
+            );
+        }
 
         return database;
     }
@@ -795,48 +807,68 @@ function loadDatabase() {
 
 
 /* =========================================================
-   حفظ قاعدة البيانات
-========================================================= */
-
-function saveDatabase(database) {
-
-    localStorage.setItem(
-        RPD_DATABASE_KEY,
-        JSON.stringify(database)
-    );
-}
-
-
-/* =========================================================
-   قاعدة البيانات الحالية
-========================================================= */
+   GLOBAL DATABASE
+   ========================================================= */
 
 let RPD_DB = loadDatabase();
 
 
 /* =========================================================
-   البحث عن الرتبة
-========================================================= */
+   SAVE DATABASE
+   ========================================================= */
+
+function saveDatabase(database) {
+
+    try {
+
+        const normalized = normalizeDatabase(database);
+
+        RPD_DB = normalized;
+
+        localStorage.setItem(
+            RPD_DATABASE_KEY,
+            JSON.stringify(normalized)
+        );
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "RPD DATABASE SAVE ERROR:",
+            error
+        );
+
+        return false;
+    }
+}
+
+
+/* =========================================================
+   GET RANK BY LEVEL
+   ========================================================= */
 
 function getRankByLevel(level) {
 
+    const numericLevel = Number(level);
+
     let selectedRank = RPD_RANKS[0];
 
-    for (const rank of RPD_RANKS) {
+    RPD_RANKS.forEach(function(rank) {
 
-        if (level >= rank.level) {
+        if (rank.level <= numericLevel) {
             selectedRank = rank;
         }
 
-    }
+    });
 
     return selectedRank;
 }
 
 
 /* =========================================================
-   اسم الرتبة
-========================================================= */
+   GET RANK NAME
+   ========================================================= */
 
 function getRankName(level) {
 
@@ -845,69 +877,231 @@ function getRankName(level) {
 
 
 /* =========================================================
-   صلاحيات المستخدم
-========================================================= */
+   GET USER PERMISSIONS
+   ========================================================= */
 
-function getUserPermissions(level) {
+function getUserPermissions(user) {
 
-    return getRankByLevel(level).permissions;
+    if (!user) {
+        return [];
+    }
+
+    const level = Number(
+        user.rankLevel !== undefined
+            ? user.rankLevel
+            : user.rank
+    );
+
+    const rank = getRankByLevel(level);
+
+    return rank.permissions || [];
 }
 
 
 /* =========================================================
-   البحث عن مستخدم
-========================================================= */
+   FIND USER
+   ========================================================= */
 
 function findUser(username, password) {
 
-    return RPD_DB.users.find(user =>
+    if (!username || password === undefined || password === null) {
+        return null;
+    }
 
-        (
-            user.username === username ||
-            user.badge === username
+    const cleanUsername = String(username)
+        .trim()
+        .toLowerCase();
+
+    const cleanPassword = String(password);
+
+    const database = RPD_DB || loadDatabase();
+
+    const users = Array.isArray(database.users)
+        ? database.users
+        : [];
+
+
+    const user = users.find(function(item) {
+
+        if (!item) {
+            return false;
+        }
+
+        const itemUsername = String(
+            item.username || ""
         )
+            .trim()
+            .toLowerCase();
 
-        &&
+        const itemPassword = String(
+            item.password ?? ""
+        );
 
-        user.password === password
+        return (
+            itemUsername === cleanUsername &&
+            itemPassword === cleanPassword
+        );
+    });
 
-    );
+
+    if (!user) {
+        return null;
+    }
+
+
+    return normalizeUser({
+        ...user
+    });
 }
 
 
 /* =========================================================
-   إنشاء معرف جديد
-========================================================= */
+   GENERATE ID
+   ========================================================= */
 
-function generateId(prefix, collection) {
+function generateId(prefix, collection = []) {
 
-    const number =
-        collection.length + 1;
+    if (!Array.isArray(collection)) {
+        collection = [];
+    }
+
+    let maxNumber = 0;
+
+
+    collection.forEach(function(item) {
+
+        if (!item || typeof item !== "object") {
+            return;
+        }
+
+        const possibleValues = [
+            item.id,
+            item.badge,
+            item.plate
+        ];
+
+
+        possibleValues.forEach(function(value) {
+
+            if (!value) {
+                return;
+            }
+
+            const match = String(value).match(
+                /(\d+)$/
+            );
+
+            if (!match) {
+                return;
+            }
+
+            const number = Number(match[1]);
+
+            if (number > maxNumber) {
+                maxNumber = number;
+            }
+
+        });
+
+    });
+
+
+    const nextNumber = maxNumber + 1;
+
 
     return (
-        prefix +
+        String(prefix) +
         "-" +
-        String(number).padStart(4, "0")
+        String(nextNumber).padStart(4, "0")
     );
 }
 
 
 /* =========================================================
-   إعادة ضبط قاعدة البيانات
-========================================================= */
+   RESET DATABASE STORAGE
+   ========================================================= */
 
 function resetDatabaseStorage() {
 
-    const database =
-        createDefaultDatabase();
+    try {
 
-    localStorage.setItem(
-        RPD_DATABASE_KEY,
-        JSON.stringify(database)
-    );
+        localStorage.removeItem(
+            RPD_DATABASE_KEY
+        );
 
-    RPD_DB = database;
+        RPD_DB = createDefaultDatabase();
 
-    return database;
+        localStorage.setItem(
+            RPD_DATABASE_KEY,
+            JSON.stringify(RPD_DB)
+        );
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "RPD DATABASE RESET ERROR:",
+            error
+        );
+
+        return false;
+    }
 }
+
+
+/* =========================================================
+   REFRESH DATABASE
+   ========================================================= */
+
+function refreshDatabase() {
+
+    RPD_DB = loadDatabase();
+
+    return RPD_DB;
+}
+
+
+/* =========================================================
+   DATABASE READY CHECK
+   ========================================================= */
+
+function isDatabaseReady() {
+
+    return !!(
+        RPD_DB &&
+        Array.isArray(RPD_DB.users) &&
+        Array.isArray(RPD_DB.citizens) &&
+        Array.isArray(RPD_DB.officers)
+    );
+}
+
+
+/* =========================================================
+   DATABASE STARTUP LOG
+   ========================================================= */
+
+console.log(
+    "RESPECT CFW — R.P.D MDT DATABASE LOADED"
+);
+
+console.log(
+    "Users:",
+    RPD_DB.users.length
+);
+
+console.log(
+    "Citizens:",
+    RPD_DB.citizens.length
+);
+
+console.log(
+    "Officers:",
+    RPD_DB.officers.length
+);
+
+console.log(
+    "Database ready:",
+    isDatabaseReady()
+);
 ```
