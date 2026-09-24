@@ -300,8 +300,8 @@ const RPD_RANKS = [
 const DEFAULT_USERS = [
     {
         id: "USR-0001",
-        username: "chief",
-        password: "1234",
+        username: "wael",
+        password: "4321",
         name: "قائد الشرطة",
         badge: "RPD-0001",
         rankLevel: 100,
