@@ -1,4 +1,4 @@
-``javascript
+``javascript``
 /* =========================================================
    RESPECT CFW — R.P.D MDT
    DATABASE.JS
